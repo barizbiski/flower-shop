@@ -1,1 +1,12 @@
 .claude/hooks/softwareos/sessions/
+
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/api/.pglite/
+.DS_Store
+.vite/

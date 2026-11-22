@@ -1,0 +1,16 @@
+# Optional: a real Postgres for local dev. Without Docker, `npm run dev` uses PGlite instead.
+# After `docker compose up -d`, set DATABASE_URL in apps/api/.env (see .env.example).
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: flower
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
+      POSTGRES_DB: flower_shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

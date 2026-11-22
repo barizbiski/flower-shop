@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+/* Palette and type from the "Flower by Event" design canvas. */
+@theme {
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+
+  --color-ink: #2a1820;
+  --color-muted: #6a5a60;
+  --color-wine: #7a2e4d;
+  --color-wine-dark: #5f2239;
+  --color-blush: #f5eaee;
+  --color-line: #d8ccc8;
+  --color-line-soft: #efe7e3;
+  --color-error: #a3243f;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: #ffffff;
+}
