@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { AuthProvider } from '../features/auth/AuthContext';
+import { AuthProvider } from '../../features/auth/AuthProvider';
 import { Header } from './Header';
 
 describe('Header', () => {

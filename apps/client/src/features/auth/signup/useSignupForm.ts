@@ -1,0 +1,54 @@
+import { useState, type FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { safeNext } from '../../../lib/safeNext';
+import { registerUser } from '../api';
+import { useAuth } from '../useAuth';
+import { validateSignup, type SignupErrors, type SignupField, type SignupValues } from './validation';
+
+/** Form-level failure shown above the fields (field errors are shown inline). */
+export type SignupFormError = 'email_taken' | 'error' | null;
+
+const EMPTY: SignupValues = { name: '', email: '', phone: '', password: '' };
+
+/**
+ * Sign-up form state and submit flow: validates on the client, registers, stores the
+ * user in auth state, then redirects to the (sanitised) `?next=` path or home.
+ */
+export function useSignupForm() {
+  const [values, setValues] = useState<SignupValues>(EMPTY);
+  const [errors, setErrors] = useState<SignupErrors>({});
+  const [formError, setFormError] = useState<SignupFormError>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  /** Returns a change handler for one field; editing a field clears its error. */
+  const update = (field: SignupField) => (value: string) => {
+    setValues((v) => ({ ...v, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
+  };
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    const clientErrors = validateSignup(values);
+    setErrors(clientErrors);
+    if (Object.keys(clientErrors).length > 0) return;
+
+    setSubmitting(true);
+    const result = await registerUser(values);
+    setSubmitting(false);
+
+    if (result.ok) {
+      setUser(result.user);
+      navigate(safeNext(params.get('next')), { replace: true });
+    } else if (result.kind === 'invalid') {
+      setErrors(result.fields);
+    } else {
+      setFormError(result.kind);
+    }
+  }
+
+  return { values, errors, formError, submitting, update, onSubmit };
+}

@@ -2,7 +2,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthProvider, useAuth } from '../AuthContext';
+import { AuthProvider } from '../AuthProvider';
+import { useAuth } from '../useAuth';
 import { SignupPage } from './SignupPage';
 
 function Landing() {
