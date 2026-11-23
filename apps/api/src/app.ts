@@ -1,31 +1,21 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
-import express from 'express';
-import { authRoutes } from './auth/auth.routes.js';
-import type { Db } from './db/pool.js';
-import { errorHandler, HttpError } from './http/errors.js';
-import { originCheck } from './http/originCheck.js';
+import type { AppConfig } from './app.config.js';
+import { AppModule } from './app.module.js';
 
-export interface AppConfig {
-  db: Db;
-  /** Origin of the web app, e.g. http://localhost:5173. */
-  webOrigin: string;
-  /** Set the Secure flag on cookies (production). */
-  secureCookies: boolean;
-}
+export type { AppConfig } from './app.config.js';
 
-export function createApp(config: AppConfig) {
-  const app = express();
-  app.disable('x-powered-by');
-  app.use(express.json({ limit: '10kb' }));
-  app.use(cookieParser());
-  app.use('/api', originCheck(config.webOrigin));
-
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true });
+/** Builds and initialises the Nest app (not yet listening). */
+export async function createApp(config: AppConfig): Promise<NestExpressApplication> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config), {
+    logger: ['error', 'warn'],
   });
-  app.use('/api/auth', authRoutes(config));
-
-  app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Not found')));
-  app.use(errorHandler);
+  app.disable('x-powered-by');
+  app.useBodyParser('json', { limit: '10kb' });
+  app.use(cookieParser());
+  app.setGlobalPrefix('api');
+  await app.init();
   return app;
 }

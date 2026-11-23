@@ -9,6 +9,6 @@ if (!config.databaseUrl) {
 }
 
 const db = createPool(config.databaseUrl);
-createApp({ db, webOrigin: config.webOrigin, secureCookies: config.production }).listen(config.port, () => {
-  console.log(`API listening on http://localhost:${config.port}`);
-});
+const app = await createApp({ db, webOrigin: config.webOrigin, secureCookies: config.production });
+await app.listen(config.port);
+console.log(`API listening on http://localhost:${config.port}`);

@@ -23,4 +23,14 @@ describe('API skeleton', () => {
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: { code: 'NOT_FOUND', message: 'Not found' } });
   });
+
+  it('returns 400 BAD_REQUEST for a malformed JSON body without echoing it', async () => {
+    const res = await request(t.app)
+      .post('/api/auth/register')
+      .set('Origin', 'http://localhost:5173')
+      .set('Content-Type', 'application/json')
+      .send('{"email": secret-value');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: { code: 'BAD_REQUEST', message: 'Invalid request body' } });
+  });
 });
