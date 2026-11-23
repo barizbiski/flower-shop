@@ -1,4 +1,4 @@
-// Mirrors apps/api/src/auth/register.schema.ts — keep rules and messages in sync.
+// Mirrors apps/server/src/auth/register.schema.ts — keep rules and messages in sync.
 
 export interface SignupValues {
   name: string;

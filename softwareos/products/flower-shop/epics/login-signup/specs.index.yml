@@ -9,7 +9,7 @@ specs:
     covers:
       - /signup
       - POST /api/auth/register
-      - apps/api/src/auth/**
-      - apps/api/src/db/migrations/*users*
-      - apps/api/src/db/migrations/*sessions*
-      - apps/web/src/features/auth/signup/**
+      - apps/server/src/auth/**
+      - apps/server/src/db/migrations/*users*
+      - apps/server/src/db/migrations/*sessions*
+      - apps/client/src/features/auth/signup/**

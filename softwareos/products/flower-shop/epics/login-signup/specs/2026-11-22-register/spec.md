@@ -3,13 +3,13 @@
 > Epic: ../../epic.md
 > Status: in-progress
 > Branch: feat/register
-> Covers: /signup, POST /api/auth/register, apps/api/src/auth/**, apps/api/src/db/migrations/*users*, apps/api/src/db/migrations/*sessions*, apps/web/src/features/auth/signup/**
+> Covers: /signup, POST /api/auth/register, apps/server/src/auth/**, apps/server/src/db/migrations/*users*, apps/server/src/db/migrations/*sessions*, apps/client/src/features/auth/signup/**
 
 ## Overview
 
 First slice of the login-signup epic: a shopper creates an account (name, email, phone, password)
 and is logged in straight away. The repo has no code yet, so this spec also sets up the minimal
-project scaffold (npm workspaces: `apps/api` Express + TS, `apps/web` Vite + React + TS + Tailwind v4,
+project scaffold (npm workspaces: `apps/server` Express + TS, `apps/client` Vite + React + TS + Tailwind v4,
 Postgres migrations), which later specs build on. It delivers these epic success criteria:
 a new user can sign up and lands logged in; a duplicate email is rejected with a clear message;
 passwords are stored only as hashes. This supports the mission goal that every buyer becomes a
@@ -35,11 +35,11 @@ to the `login-logout` and `checkout-auth-gate` specs.
 
 ## Technical Approach
 
-- **Workspace:** root `package.json` with npm workspaces `apps/api` and `apps/web`, shared `tsconfig.base.json`, `docker-compose.yml` (Postgres 16), and a `.env.example` holding placeholder values only.
-- **Local Postgres without Docker:** tests and `npm run dev` use PGlite (Postgres compiled to WASM), served over the Postgres wire protocol by `@electric-sql/pglite-socket`. The API, `pg` and node-pg-migrate talk to it exactly as they would to a real server. Tests use an in-memory instance; dev uses a persistent data dir (`apps/api/.pglite/`). Set `DATABASE_URL` to use a real Postgres (e.g. docker-compose) instead.
+- **Workspace:** root `package.json` with npm workspaces `apps/server` and `apps/client`, shared `tsconfig.base.json`, `docker-compose.yml` (Postgres 16), and a `.env.example` holding placeholder values only.
+- **Local Postgres without Docker:** tests and `npm run dev` use PGlite (Postgres compiled to WASM), served over the Postgres wire protocol by `@electric-sql/pglite-socket`. The API, `pg` and node-pg-migrate talk to it exactly as they would to a real server. Tests use an in-memory instance; dev uses a persistent data dir (`apps/server/.pglite/`). Set `DATABASE_URL` to use a real Postgres (e.g. docker-compose) instead.
 - **DB:** node-pg-migrate + `pg`. Migration `users` (uuid id, name, email `citext` unique, phone, password_hash, created_at, updated_at). Migration `sessions` (id = sha256(token) as the primary key, user_id FK on delete cascade, expires_at, created_at).
-- **API:** Express app factory `apps/api/src/app.ts` (JSON body limit, error middleware with the shape `{ error: { code, message, fields? } }`). `apps/api/src/auth/`: `register.schema.ts` (zod), `password.ts` (argon2id hash and verify), `sessions.ts` (create a 32-byte random token, store its hash, set the cookie), `users.repo.ts`, `auth.routes.ts` (`POST /api/auth/register`), and an `originCheck` middleware for state-changing requests. Unique-violation `23505` → `409 EMAIL_TAKEN`.
-- **Web:** React Router route `/signup` → `apps/web/src/features/auth/signup/SignupPage.tsx`, with the validation rules copied client-side. On success, store the returned user in a minimal `AuthProvider` state (`apps/web/src/features/auth/AuthContext.tsx`), which `login-logout` will later back with `/me`. Vite dev proxy for `/api`. Fonts from Google Fonts (DM Sans, DM Serif Display), with the Tailwind v4 theme set to the canvas colours.
+- **API:** Express app factory `apps/server/src/app.ts` (JSON body limit, error middleware with the shape `{ error: { code, message, fields? } }`). `apps/server/src/auth/`: `register.schema.ts` (zod), `password.ts` (argon2id hash and verify), `sessions.ts` (create a 32-byte random token, store its hash, set the cookie), `users.repo.ts`, `auth.routes.ts` (`POST /api/auth/register`), and an `originCheck` middleware for state-changing requests. Unique-violation `23505` → `409 EMAIL_TAKEN`.
+- **Web:** React Router route `/signup` → `apps/client/src/features/auth/signup/SignupPage.tsx`, with the validation rules copied client-side. On success, store the returned user in a minimal `AuthProvider` state (`apps/client/src/features/auth/AuthContext.tsx`), which `login-logout` will later back with `/me`. Vite dev proxy for `/api`. Fonts from Google Fonts (DM Sans, DM Serif Display), with the Tailwind v4 theme set to the canvas colours.
 - **Tests (TDD):** Vitest + supertest for the API against PGlite, and Vitest + Testing Library for the form.
 
 ## Out of Scope

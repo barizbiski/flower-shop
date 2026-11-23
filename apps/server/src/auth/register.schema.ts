@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { FieldErrors } from '../http/errors.js';
 
-// Keep rules and messages in sync with apps/web/src/features/auth/signup/validation.ts.
+// Keep rules and messages in sync with apps/client/src/features/auth/signup/validation.ts.
 const requiredString = (message: string) => z.string({ error: message });
 
 export const registerSchema = z.object({

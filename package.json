@@ -2,11 +2,11 @@
   "name": "flower-shop",
   "private": true,
   "workspaces": [
-    "apps/api",
-    "apps/web"
+    "apps/server",
+    "apps/client"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web -c magenta,green \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "dev": "concurrently -n server,client -c magenta,green \"npm run dev -w apps/server\" \"npm run dev -w apps/client\"",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
