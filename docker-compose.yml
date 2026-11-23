@@ -1,5 +1,5 @@
 # Optional: a real Postgres for local dev. Without Docker, `npm run dev` uses PGlite instead.
-# After `docker compose up -d`, set DATABASE_URL in apps/server/.env (see .env.example).
+# After `docker compose up -d`, set DATABASE_URL in apps/backend/.env (see .env.example).
 services:
   db:
     image: postgres:16

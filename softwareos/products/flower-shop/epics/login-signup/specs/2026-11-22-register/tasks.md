@@ -7,13 +7,13 @@
 ## Scaffold
 
 - [~] T1 Root npm workspaces, tsconfig.base.json, .gitignore, .env.example (placeholders), docker-compose.yml (Postgres 16)
-- [x] T2 apps/server: Express + TS app factory (src/app.ts, src/server.ts), error middleware, Vitest + supertest config, test DB setup
-- [x] T3 apps/client: Vite + React 18 + TS + Tailwind v4, React Router, /api dev proxy, canvas fonts and colour theme, Vitest + Testing Library config
+- [x] T2 apps/backend: Express + TS app factory (src/app.ts, src/server.ts), error middleware, Vitest + supertest config, test DB setup
+- [x] T3 apps/frontend: Vite + React 18 + TS + Tailwind v4, React Router, /api dev proxy, canvas fonts and colour theme, Vitest + Testing Library config
 - [x] T4 node-pg-migrate setup and npm scripts (migrate up/down, root dev/test)
 
 ## Database
 
-- [x] T5 Migration: users table (citext unique email) — apps/server/src/db/migrations/
+- [x] T5 Migration: users table (citext unique email) — apps/backend/src/db/migrations/
 - [x] T6 Migration: sessions table (token hash PK, user FK cascade, expires_at)
 
 ## API — POST /api/auth/register

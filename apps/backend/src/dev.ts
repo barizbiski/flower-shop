@@ -5,7 +5,7 @@ import { runMigrations } from './db/migrate.js';
 import { startPgliteServer } from './db/pglite-server.js';
 import { createPool } from './db/pool.js';
 
-// Dev entry point: uses DATABASE_URL when set, otherwise a persistent PGlite database in apps/server/.pglite/.
+// Dev entry point: uses DATABASE_URL when set, otherwise a persistent PGlite database in apps/backend/.pglite/.
 const config = loadConfig();
 let databaseUrl = config.databaseUrl;
 let poolMax = 10;

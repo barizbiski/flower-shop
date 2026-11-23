@@ -1,6 +1,6 @@
 import { runMigrations } from './migrate.js';
 
-// Usage: npm run migrate -w apps/server -- up|down   (requires DATABASE_URL; `npm run dev` migrates PGlite itself)
+// Usage: npm run migrate -w apps/backend -- up|down   (requires DATABASE_URL; `npm run dev` migrates PGlite itself)
 const direction = process.argv[2] === 'down' ? 'down' : 'up';
 const url = process.env.DATABASE_URL;
 if (!url) {

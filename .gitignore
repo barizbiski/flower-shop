@@ -7,6 +7,6 @@ coverage/
 .env
 .env.*
 !.env.example
-apps/server/.pglite/
+apps/backend/.pglite/
 .DS_Store
 .vite/

@@ -1,5 +1,5 @@
 {
-  "name": "@flower-shop/client",
+  "name": "@flower-shop/frontend",
   "private": true,
   "type": "module",
   "scripts": {
