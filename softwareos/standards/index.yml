@@ -2,7 +2,7 @@
 
 global:
   git-workflow:
-    description: Needs description - run /index-standards
+    description: Branch naming, commit style, small single-concern PRs (≤ ~400 lines, split by task), production-mode gates
   tech-stack:
     description: Needs description - run /index-standards
 
