@@ -13,3 +13,15 @@ specs:
       - apps/backend/src/db/migrations/*users*
       - apps/backend/src/db/migrations/*sessions*
       - apps/frontend/src/features/auth/signup/**
+  - folder: 2026-11-24-login-logout
+    slug: login-logout
+    status: shaped
+    branch: feat/login
+    covers:
+      - /login
+      - POST /api/auth/login
+      - POST /api/auth/logout
+      - GET /api/auth/me
+      - apps/frontend/src/features/auth/login/**
+      - apps/frontend/src/features/auth/AuthProvider.tsx
+      - apps/frontend/src/components/layout/Header.tsx
