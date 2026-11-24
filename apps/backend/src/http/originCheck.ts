@@ -1,9 +1,9 @@
 import { Inject, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 import { APP_CONFIG, type AppConfig } from '../app.config.js';
+import { ERROR_CODES } from '../common/constants/error-codes.js';
+import { SAFE_METHODS } from '../common/constants/http.js';
 import { HttpError } from './errors.js';
-
-const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
  * CSRF defence for cookie sessions (alongside SameSite=Lax): state-changing requests must
@@ -22,6 +22,6 @@ export class OriginGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     if (SAFE_METHODS.has(req.method)) return true;
     if (req.get('origin') === this.allowed) return true;
-    throw new HttpError(403, 'FORBIDDEN_ORIGIN', 'Request origin not allowed');
+    throw new HttpError(403, ERROR_CODES.FORBIDDEN_ORIGIN, 'Request origin not allowed');
   }
 }

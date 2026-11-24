@@ -1,12 +1,5 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-
-interface TextLinkProps {
-  to: string;
-  children: ReactNode;
-  /** Bold weight, for a standalone call to action. */
-  emphasis?: boolean;
-}
+import type { TextLinkProps } from './TextLink.types';
 
 /** Inline in-app link in the brand wine colour. */
 export function TextLink({ to, children, emphasis = false }: TextLinkProps) {

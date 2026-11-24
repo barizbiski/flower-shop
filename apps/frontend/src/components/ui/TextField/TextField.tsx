@@ -1,14 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
-
-interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'id'> {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  /** Shown in place of the hint, and marks the input invalid. */
-  error?: string;
-  hint?: string;
-}
+import type { TextFieldProps } from './TextField.types';
 
 /** Labelled text input with an accessible hint or error message underneath. */
 export function TextField({ id, label, value, onChange, error, hint, ...rest }: TextFieldProps) {

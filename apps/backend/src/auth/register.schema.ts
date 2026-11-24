@@ -1,30 +1,35 @@
 import { z } from 'zod';
-import type { FieldErrors } from '../http/errors.js';
+import type { FieldErrors } from '../common/types/field-errors.js';
+import {
+  EMAIL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PHONE_RE,
+  PHONE_SEPARATORS_RE,
+  REGISTER_MESSAGES as MSG,
+} from './auth.constants.js';
+import type { ParseRegisterResult } from './auth.types.js';
 
-// Keep rules and messages in sync with apps/frontend/src/features/auth/signup/validation.ts.
+// Keep rules in sync with apps/frontend/src/features/auth/signup/validation.ts.
 const requiredString = (message: string) => z.string({ error: message });
 
 export const registerSchema = z.object({
-  name: requiredString('Please enter your name')
-    .trim()
-    .min(1, 'Please enter your name')
-    .max(100, 'Name must be 100 characters or fewer'),
-  email: requiredString('Please enter a valid email address')
+  name: requiredString(MSG.nameRequired).trim().min(1, MSG.nameRequired).max(NAME_MAX_LENGTH, MSG.nameTooLong),
+  email: requiredString(MSG.emailInvalid)
     .trim()
     .toLowerCase()
-    .max(254, 'Please enter a valid email address')
-    .pipe(z.email('Please enter a valid email address')),
-  phone: requiredString('Please enter a valid phone number (9–15 digits)')
-    .transform((s) => s.replace(/[\s-]/g, ''))
-    .pipe(z.string().regex(/^\+?\d{9,15}$/, 'Please enter a valid phone number (9–15 digits)')),
-  password: requiredString('Password must be at least 8 characters')
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password must be 128 characters or fewer'),
+    .max(EMAIL_MAX_LENGTH, MSG.emailInvalid)
+    .pipe(z.email(MSG.emailInvalid)),
+  phone: requiredString(MSG.phoneInvalid)
+    .transform((s) => s.replace(PHONE_SEPARATORS_RE, ''))
+    .pipe(z.string().regex(PHONE_RE, MSG.phoneInvalid)),
+  password: requiredString(MSG.passwordTooShort)
+    .min(PASSWORD_MIN_LENGTH, MSG.passwordTooShort)
+    .max(PASSWORD_MAX_LENGTH, MSG.passwordTooLong),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-
-export function parseRegister(body: unknown): { ok: true; data: RegisterInput } | { ok: false; fields: FieldErrors } {
+export function parseRegister(body: unknown): ParseRegisterResult {
   const result = registerSchema.safeParse(body ?? {});
   if (result.success) return { ok: true, data: result.data };
 

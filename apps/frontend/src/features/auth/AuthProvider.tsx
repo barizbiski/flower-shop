@@ -1,11 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { AuthContext } from './authContext';
-import type { User } from './types';
-
-interface AuthProviderProps {
-  children: ReactNode;
-  initialUser?: User | null;
-}
+import type { AuthProviderProps, User } from './types';
 
 /**
  * Minimal auth state, seeded from the register response.

@@ -1,12 +1,12 @@
 import { Catch, HttpException, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
-
-export type FieldErrors = Record<string, string>;
+import { ERROR_CODES, type ErrorCode } from '../common/constants/error-codes.js';
+import type { FieldErrors } from '../common/types/field-errors.js';
 
 export class HttpError extends Error {
   constructor(
     readonly status: number,
-    readonly code: string,
+    readonly code: ErrorCode,
     message: string,
     readonly fields?: FieldErrors,
   ) {
@@ -34,14 +34,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? (err as { status: number }).status
           : 500;
     if (status === 404) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not found' } });
+      res.status(404).json({ error: { code: ERROR_CODES.NOT_FOUND, message: 'Not found' } });
       return;
     }
     if (status >= 400 && status < 500) {
-      res.status(status).json({ error: { code: 'BAD_REQUEST', message: 'Invalid request body' } });
+      res.status(status).json({ error: { code: ERROR_CODES.BAD_REQUEST, message: 'Invalid request body' } });
       return;
     }
     console.error('Unhandled error:', err instanceof Error ? err.message : 'unknown');
-    res.status(500).json({ error: { code: 'INTERNAL', message: 'Something went wrong' } });
+    res.status(500).json({ error: { code: ERROR_CODES.INTERNAL, message: 'Something went wrong' } });
   }
 }

@@ -1,10 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react';
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Disables the button and shows `loadingText` (when given) instead of the children. */
-  loading?: boolean;
-  loadingText?: string;
-}
+import type { ButtonProps } from './Button.types';
 
 /** Primary pill button in the brand wine colour. */
 export function Button({ loading = false, loadingText, disabled, className = '', children, ...rest }: ButtonProps) {

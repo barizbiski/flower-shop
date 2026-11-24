@@ -1,4 +1,4 @@
-import { Heading } from '../components/ui/Heading';
+import { Heading } from '../components/ui/Heading/Heading';
 
 // Placeholder until the guided-questionnaire / catalog epics land.
 export function HomePage() {

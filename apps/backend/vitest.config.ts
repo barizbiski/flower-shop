@@ -1,7 +1,8 @@
 import swc from 'unplugin-swc';
+import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   // SWC instead of esbuild: Nest needs legacy decorators + emitDecoratorMetadata.
   plugins: [
     swc.vite({
@@ -16,8 +17,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
-    // Each test file boots its own in-memory PGlite; argon2 hashing is deliberately slow.
+    // Picks up DATABASE_URL / TEST_DATABASE_URL from apps/backend/.env.
+    env: loadEnv(mode, process.cwd(), ''),
+    // Each test file creates its own Postgres database; argon2 hashing is deliberately slow.
     testTimeout: 20_000,
     hookTimeout: 60_000,
   },
-});
+}));

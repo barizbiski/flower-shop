@@ -1,15 +1,6 @@
-import type { FormEvent } from 'react';
-import { Button } from '../../../components/ui/Button';
-import { TextField } from '../../../components/ui/TextField';
-import type { SignupErrors, SignupField, SignupValues } from './validation';
-
-interface SignupFormProps {
-  values: SignupValues;
-  errors: SignupErrors;
-  submitting: boolean;
-  onFieldChange: (field: SignupField) => (value: string) => void;
-  onSubmit: (e: FormEvent) => void;
-}
+import { Button } from '../../../components/ui/Button/Button';
+import { TextField } from '../../../components/ui/TextField/TextField';
+import type { SignupFormProps } from '../types';
 
 /** The sign-up fields and submit button. Presentation only; state lives in useSignupForm. */
 export function SignupForm({ values, errors, submitting, onFieldChange, onSubmit }: SignupFormProps) {

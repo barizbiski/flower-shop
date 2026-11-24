@@ -1,10 +1,4 @@
-import type { ReactNode } from 'react';
-
-interface AlertProps {
-  children: ReactNode;
-  /** Layout classes from the caller (margins). */
-  className?: string;
-}
+import type { AlertProps } from './Alert.types';
 
 /** Error banner announced to assistive technology (role="alert"). */
 export function Alert({ children, className = '' }: AlertProps) {

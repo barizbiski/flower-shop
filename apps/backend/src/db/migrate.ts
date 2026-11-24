@@ -14,8 +14,6 @@ export async function runMigrations(
     direction,
     count: opts.count ?? (direction === 'up' ? Infinity : 1),
     migrationsTable: 'pgmigrations',
-    // PGlite serialises connections itself; advisory locks are unnecessary there and harmless elsewhere.
-    noLock: true,
     log: opts.quiet ? () => {} : console.log,
   });
 }

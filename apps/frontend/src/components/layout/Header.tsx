@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
-import { getFirstName } from '../../features/auth/userName';
-import { TextLink } from '../ui/TextLink';
+import { getFirstName } from '../../utils/string';
+import { TextLink } from '../ui/TextLink/TextLink';
 
 export function Header() {
   const { user } = useAuth();

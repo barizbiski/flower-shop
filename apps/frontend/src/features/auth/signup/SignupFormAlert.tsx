@@ -1,9 +1,9 @@
-import { Alert } from '../../../components/ui/Alert';
-import { TextLink } from '../../../components/ui/TextLink';
-import type { SignupFormError } from './useSignupForm';
+import { Alert } from '../../../components/ui/Alert/Alert';
+import { TextLink } from '../../../components/ui/TextLink/TextLink';
+import type { SignupFormAlertProps } from '../types';
 
 /** Banner for form-level failures; renders nothing when there is no error. */
-export function SignupFormAlert({ error }: { error: SignupFormError }) {
+export function SignupFormAlert({ error }: SignupFormAlertProps) {
   if (!error) return null;
   return (
     <Alert className="mb-4">

@@ -4,7 +4,7 @@ import { createPool } from './db/pool.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) {
-  console.error('DATABASE_URL is required (use `npm run dev` for the bundled PGlite database).');
+  console.error('DATABASE_URL is required.');
   process.exit(1);
 }
 

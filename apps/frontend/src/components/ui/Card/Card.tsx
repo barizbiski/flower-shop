@@ -1,10 +1,4 @@
-import type { ReactNode } from 'react';
-
-interface CardProps {
-  children: ReactNode;
-  /** Layout classes from the caller (width, margins). */
-  className?: string;
-}
+import type { CardProps } from './Card.types';
 
 /** White rounded surface with a soft border. */
 export function Card({ children, className = '' }: CardProps) {

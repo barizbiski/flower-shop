@@ -1,6 +1,6 @@
-import { Card } from '../../../components/ui/Card';
-import { Heading } from '../../../components/ui/Heading';
-import { TextLink } from '../../../components/ui/TextLink';
+import { Card } from '../../../components/ui/Card/Card';
+import { Heading } from '../../../components/ui/Heading/Heading';
+import { TextLink } from '../../../components/ui/TextLink/TextLink';
 import { SignupForm } from './SignupForm';
 import { SignupFormAlert } from './SignupFormAlert';
 import { useSignupForm } from './useSignupForm';
