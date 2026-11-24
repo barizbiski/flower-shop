@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { SESSION_TOKEN_BYTES } from '../auth.constants.js';
+import { REFRESH_TOKEN_BYTES } from '../auth.constants.js';
 
-/** New random session token (URL-safe). */
+/** New random refresh token (URL-safe). */
 export function generateToken(): string {
-  return randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
+  return randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
 }
 
 /** SHA-256 hex digest of a token; this is what the sessions table stores. */
