@@ -3,7 +3,7 @@
 ## Components
 
 - **Web client** — React SPA (Vite), English-only for MVP (build i18n-ready for later Hebrew/RTL): guided questionnaire, bouquet catalog with filters, product pages, build-your-own, cart, auth (sign up / log in), checkout with delivery details.
-- **API server** — Express REST/JSON API: catalog, questionnaire recommendations, build-your-own pricing, auth/accounts, cart/orders, checkout, payment integration, stock decrement.
+- **API server** — NestJS (on Express) REST/JSON API: catalog, questionnaire recommendations, build-your-own pricing, auth/accounts, cart/orders, checkout, payment integration, stock decrement.
 - **Database** — PostgreSQL: users, products (bouquets and individual stems), occasions/colors/price attributes, stock quantities, orders with per-order recipient and delivery details. Also the owner's MVP "admin": restocking is done directly in the database.
 - **Recommendation logic** — rule-based (no LLM in MVP): maps occasion + budget + color to suitable bouquets, or to a starting stem mix within budget.
 - **Payment provider** — external (TBD), used by checkout.
