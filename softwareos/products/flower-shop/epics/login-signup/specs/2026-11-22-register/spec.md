@@ -3,7 +3,7 @@
 > Epic: ../../epic.md
 > Status: in-progress
 > Branch: feat/register
-> Covers: /signup, POST /api/auth/register, apps/backend/src/auth/**, apps/backend/src/db/migrations/*users*, apps/backend/src/db/migrations/*sessions*, apps/frontend/src/features/auth/signup/**
+> Covers: /signup, POST /api/auth/register, apps/backend/src/features/auth/**, apps/backend/src/db/migrations/*users*, apps/backend/src/db/migrations/*sessions*, apps/frontend/src/features/auth/signup/**
 
 ## Overview
 

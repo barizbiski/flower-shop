@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ERROR_CODES } from '../common/constants/error-codes.js';
-import { DatabaseService } from '../db/database.service.js';
-import { HttpError } from '../http/errors.js';
-import { REGISTER_MESSAGES } from './auth.constants.js';
-import type { RegisterInput, RegisterResult } from './auth.types.js';
-import { hashPassword } from './helpers/password.js';
-import { SessionsRepository } from './sessions.repo.js';
-import { EmailTakenError, UsersRepository } from './users.repo.js';
+import { ERROR_CODES } from '../../../common/constants/error-codes.js';
+import { DatabaseService } from '../../../db/database.service.js';
+import { HttpError } from '../../../http/errors.js';
+import { hashPassword } from '../shared/helpers/password.js';
+import { SessionsRepository } from '../shared/sessions.repo.js';
+import { EmailTakenError, UsersRepository } from '../shared/users.repo.js';
+import { REGISTER_MESSAGES } from './register.constants.js';
+import type { RegisterInput, RegisterResult } from './register.types.js';
 
 @Injectable()
-export class AuthService {
+export class RegisterService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(UsersRepository) private readonly users: UsersRepository,

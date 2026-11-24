@@ -1,4 +1,4 @@
-// Mirrors apps/backend/src/auth/auth.constants.ts — keep limits and messages in sync.
+// Mirrors apps/backend/src/features/auth/shared/auth.constants.ts and register/register.constants.ts — keep limits and messages in sync.
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PHONE_RE = /^\+?\d{9,15}$/;

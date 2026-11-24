@@ -1,22 +1,7 @@
 import type { z } from 'zod';
-import type { FieldErrors } from '../common/types/field-errors.js';
+import type { FieldErrors } from '../../../common/types/field-errors.js';
+import type { PublicUser } from '../shared/auth.types.js';
 import type { registerSchema } from './register.schema.js';
-
-/** User fields safe to return to the client (no password hash). */
-export interface PublicUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-/** Row data for inserting a user. */
-export interface NewUser {
-  name: string;
-  email: string;
-  phone: string;
-  passwordHash: string;
-}
 
 /** Validated, normalised body of POST /api/auth/register. */
 export type RegisterInput = z.infer<typeof registerSchema>;

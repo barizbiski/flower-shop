@@ -10,7 +10,7 @@ import {
 } from '../../../constants/validation';
 import type { SignupErrors, SignupValues } from '../types';
 
-// Mirrors apps/backend/src/auth/register.schema.ts — keep rules in sync.
+// Mirrors apps/backend/src/features/auth/register/register.schema.ts — keep rules in sync.
 export function validateSignup(v: SignupValues): SignupErrors {
   const errors: SignupErrors = {};
   const name = v.name.trim();

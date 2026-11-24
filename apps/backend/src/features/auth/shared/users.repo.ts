@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DatabaseService } from '../db/database.service.js';
-import type { Queryable } from '../db/pool.js';
+import { DatabaseService } from '../../../db/database.service.js';
+import type { Queryable } from '../../../db/pool.js';
 import { PG_UNIQUE_VIOLATION } from './auth.constants.js';
 import type { NewUser, PublicUser } from './auth.types.js';
 
