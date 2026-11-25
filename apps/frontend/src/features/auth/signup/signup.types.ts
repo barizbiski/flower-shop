@@ -1,22 +1,5 @@
-import type { FormEvent, ReactNode } from 'react';
-
-/** Public user profile, as returned by the auth endpoints. */
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface AuthState {
-  user: User | null;
-  setUser: (user: User | null) => void;
-}
-
-export interface AuthProviderProps {
-  children: ReactNode;
-  initialUser?: User | null;
-}
+import type { FormEvent } from 'react';
+import type { User } from '../shared/auth.types';
 
 export interface SignupValues {
   name: string;

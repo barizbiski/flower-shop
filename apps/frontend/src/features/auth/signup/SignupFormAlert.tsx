@@ -1,6 +1,6 @@
 import { Alert } from '../../../components/ui/Alert/Alert';
 import { TextLink } from '../../../components/ui/TextLink/TextLink';
-import type { SignupFormAlertProps } from '../types';
+import type { SignupFormAlertProps } from './signup.types';
 
 /** Banner for form-level failures; renders nothing when there is no error. */
 export function SignupFormAlert({ error }: SignupFormAlertProps) {

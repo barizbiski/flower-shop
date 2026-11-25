@@ -15,6 +15,7 @@ export const VALIDATION_MESSAGES = {
   nameTooLong: `Name must be ${NAME_MAX_LENGTH} characters or fewer`,
   emailInvalid: 'Please enter a valid email address',
   phoneInvalid: 'Please enter a valid phone number (9–15 digits)',
-  passwordTooShort: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+  passwordRequired: 'Please enter your password',
+  passwordTooShort:`Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
   passwordTooLong: `Password must be ${PASSWORD_MAX_LENGTH} characters or fewer`,
 } as const;

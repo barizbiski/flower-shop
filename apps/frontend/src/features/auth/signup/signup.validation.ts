@@ -8,7 +8,7 @@ import {
   PHONE_SEPARATORS_RE,
   VALIDATION_MESSAGES as MSG,
 } from '../../../constants/validation';
-import type { SignupErrors, SignupValues } from '../types';
+import type { SignupErrors, SignupValues } from './signup.types';
 
 // Mirrors apps/backend/src/features/auth/register/register.schema.ts — keep rules in sync.
 export function validateSignup(v: SignupValues): SignupErrors {

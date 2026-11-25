@@ -1,0 +1,24 @@
+import type { ApiErrorBody, ApiResponse } from '../../types/api';
+import { getAccessToken } from './session';
+
+export type HttpMethod = 'GET' | 'POST';
+
+/**
+ * One same-origin fetch, with the access token as a Bearer header when there is one. No retry.
+ * Resolves for any HTTP status (body is null when it isn't valid JSON); rejects only on network failure.
+ */
+export async function send(method: HttpMethod, path: string, payload?: unknown): Promise<ApiResponse<unknown>> {
+  const headers: Record<string, string> = {};
+  if (payload !== undefined) headers['Content-Type'] = 'application/json';
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(path, {
+    method,
+    credentials: 'same-origin',
+    headers,
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  });
+  const body = (await res.json().catch(() => null)) as unknown;
+  return { status: res.status, body: body as ApiErrorBody | null };
+}

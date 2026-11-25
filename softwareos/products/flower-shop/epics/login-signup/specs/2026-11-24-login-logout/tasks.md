@@ -21,13 +21,13 @@
 
 ## Web (PR 2)
 
-- [ ] T8 apiClient getJson; loginUser, refreshSession, logoutUser, fetchMe in features/auth/api.ts; registerUser stores accessToken; routes in constants/api.ts
-- [ ] T9 AuthProvider: access token in memory only, call /refresh on mount with loading status, expose logout()
-- [ ] T10 features/auth/login/: useLoginForm, LoginForm (client validation, 401/429 messages)
-- [ ] T11 LoginPage at /login with safe ?next= redirect; route in App.tsx
-- [ ] T12 AccountMenu (header button + panel, logged-out form / logged-in name, email, Log out), canvas styling, Escape/outside click closes; wire into Header.tsx
-- [ ] T13 Update Header.test.tsx and App.test.tsx for the new header (mock /refresh) so the existing suite passes
-- [ ] T19 apiClient: Bearer header from the in-memory access token; on 401 one shared refresh then retry; on refresh failure clear token and log out (auth endpoints never retried)
+- [x] T8 apiClient getJson; loginUser, refreshSession, logoutUser, fetchMe in features/auth/api.ts; registerUser stores accessToken; routes in constants/api.ts
+- [x] T9 AuthProvider: access token in memory only, call /refresh on mount with loading status, expose logout()
+- [x] T10 features/auth/login/: useLoginForm, LoginForm (client validation, 401/429 messages)
+- [x] T11 LoginPage at /login with safe ?next= redirect; route in App.tsx
+- [x] T12 AccountMenu (header button + panel, logged-out form / logged-in name, email, Log out), canvas styling, Escape/outside click closes; wire into Header.tsx
+- [x] T13 Update Header.test.tsx and App.test.tsx for the new header (mock /refresh) so the existing suite passes
+- [x] T19 apiClient: Bearer header from the in-memory access token; on 401 one shared refresh then retry; on refresh failure clear token and log out (auth endpoints never retried)
 
 ## Verification
 
