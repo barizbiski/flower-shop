@@ -2,4 +2,4 @@
 export { isApiError, isAuthResponse } from './guards';
 export { refreshAccessToken } from './refresh';
 export { getJson, postJson } from './request';
-export { setAccessToken, setSessionExpiredHandler } from './session';
+export { setSessionExpiredHandler } from './session';

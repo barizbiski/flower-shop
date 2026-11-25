@@ -35,7 +35,19 @@ describe('SessionCleanupService', () => {
 
     expect(deleted).toBe(1);
     expect(await sessionUserEmails(t)).toEqual(['live@example.com']);
-    expect((await postAuth(t, 'refresh', undefined, { refreshToken: live.refreshToken })).status).toBe(200);
+    expect((await postAuth(t, 'refresh', undefined, { accessToken: live.accessToken })).status).toBe(200);
+  });
+
+  it('keeps a revoked session until it expires, then deletes it', async () => {
+    const { accessToken } = await registerUser(t);
+    await postAuth(t, 'logout', undefined, { accessToken });
+
+    expect(await t.nest.get(SessionCleanupService).deleteExpiredSessions()).toBe(0);
+    expect(await sessionUserEmails(t)).toHaveLength(1);
+
+    await t.db.query(`UPDATE sessions SET expires_at = now() - interval '1 second'`);
+    expect(await t.nest.get(SessionCleanupService).deleteExpiredSessions()).toBe(1);
+    expect(await sessionUserEmails(t)).toHaveLength(0);
   });
 
   it('is a no-op when nothing has expired', async () => {

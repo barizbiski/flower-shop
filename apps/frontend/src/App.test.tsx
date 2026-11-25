@@ -11,10 +11,9 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Log in or open account menu' })).toBeInTheDocument();
   });
 
-  // AC6: the session is restored from the refresh cookie on load, with no logged-out flash
+  // AC6: the session is restored from the access-token cookie on load, with no logged-out flash
   it('restores the session on load and shows the initials', async () => {
     const fetchMock = mockFetch(200, {
-      accessToken: 'at-1',
       user: TEST_USER,
     });
     render(<App />);

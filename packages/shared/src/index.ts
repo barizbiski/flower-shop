@@ -1,5 +1,5 @@
 export { API_MESSAGES } from './api/api.messages.js';
-export { API_PREFIX, AUTH_BASE_PATH, AUTH_ENDPOINTS, AUTH_PATHS, AUTH_ROUTE } from './api/api.routes.js';
+export { API_BASE_PATH, API_PREFIX, AUTH_BASE_PATH, AUTH_ENDPOINTS, AUTH_PATHS, AUTH_ROUTE } from './api/api.routes.js';
 export type { ApiErrorBody, FieldErrors } from './api/api.types.js';
 export { ERROR_CODES, type ErrorCode } from './api/error-codes.js';
 export {

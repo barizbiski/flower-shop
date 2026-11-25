@@ -8,6 +8,6 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export interface LoginContext {
   /** Client IP, half of the rate-limit key. */
   ip: string;
-  /** Refresh token the client already holds, if any; replaced by the new one. */
-  currentRefreshToken?: string;
+  /** Session token from the access cookie the client already holds, if any; that session is revoked. */
+  currentSessionToken?: string;
 }

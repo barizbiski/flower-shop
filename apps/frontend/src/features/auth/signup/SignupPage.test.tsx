@@ -31,7 +31,7 @@ describe('SignupPage', () => {
 
   // AC4 (client side)
   it('shows field errors and does not submit when the input is invalid', async () => {
-    const fetchMock = mockFetch(201, { accessToken: 'at-1', user: createdUser });
+    const fetchMock = mockFetch(201, { user: createdUser });
     const user = userEvent.setup();
     renderSignup();
 
@@ -51,7 +51,7 @@ describe('SignupPage', () => {
 
   // AC2
   it('posts the details, stores the user, and goes home logged in', async () => {
-    const fetchMock = mockFetch(201, { accessToken: 'at-1', user: createdUser });
+    const fetchMock = mockFetch(201, { user: createdUser });
     renderSignup();
     const user = await fillValid();
     await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -67,7 +67,7 @@ describe('SignupPage', () => {
 
   // AC2
   it('honours a safe same-site ?next= path', async () => {
-    mockFetch(201, { accessToken: 'at-1', user: createdUser });
+    mockFetch(201, { user: createdUser });
     renderSignup('/signup?next=%2Fcheckout');
     const user = await fillValid();
     await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -78,7 +78,7 @@ describe('SignupPage', () => {
   it.each(['https://evil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)'])(
     'ignores an unsafe ?next= (%s) and goes home',
     async (next) => {
-      mockFetch(201, { accessToken: 'at-1', user: createdUser });
+      mockFetch(201, { user: createdUser });
       renderSignup(`/signup?next=${encodeURIComponent(next)}`);
       const user = await fillValid();
       await user.click(screen.getByRole('button', { name: 'Create account' }));

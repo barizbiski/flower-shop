@@ -1,6 +1,9 @@
 /** Every API route is served under /api. */
 export const API_PREFIX = 'api';
 
+/** /api — also the access-token cookie's Path. */
+export const API_BASE_PATH = `/${API_PREFIX}`;
+
 /** Controller path of the auth endpoints. */
 export const AUTH_ROUTE = 'auth';
 
@@ -13,8 +16,8 @@ export const AUTH_ENDPOINTS = {
   me: 'me',
 } as const;
 
-/** /api/auth — also the refresh cookie's Path, so the cookie is only sent to the auth endpoints. */
-export const AUTH_BASE_PATH = `/${API_PREFIX}/${AUTH_ROUTE}`;
+/** /api/auth */
+export const AUTH_BASE_PATH = `${API_BASE_PATH}/${AUTH_ROUTE}`;
 
 type AuthEndpoint = keyof typeof AUTH_ENDPOINTS;
 

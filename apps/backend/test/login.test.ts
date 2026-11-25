@@ -1,16 +1,21 @@
-import { createHash, randomBytes } from 'node:crypto';
-import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'node:crypto';
+import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  LEGACY_REFRESH_COOKIE,
+  accessCookie,
+  accessTokenFrom,
+  decodeJwt,
   getMe,
   postAuth,
-  refreshCookie,
-  refreshTokenFrom,
   registerUser,
+  sessionIdOf,
+  setCookie,
+  signJwt,
   validUser,
   type TestApp,
 } from './helpers/auth.js';
-import { startTestApp, TEST_JWT_SECRET } from './helpers/testApp.js';
+import { startTestApp } from './helpers/testApp.js';
 
 const creds = { email: 'dana.levi@example.com', password: validUser.password };
 
@@ -36,52 +41,57 @@ describe('POST /api/auth/login', () => {
   });
 
   // AC3
-  it('logs in with any email case and surrounding spaces: 200, access token, user, refresh cookie', async () => {
+  it('logs in with any email case and surrounding spaces: 200 { user } and an httpOnly access cookie', async () => {
     const res = await login(t, { email: '  DANA.Levi@example.COM ', password: validUser.password });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      accessToken: expect.any(String),
       user: { id: expect.any(String), name: 'Dana Levi', email: 'dana.levi@example.com', phone: '+972501234567' },
     });
 
-    const cookie = refreshCookie(res)!;
+    const cookie = accessCookie(res)!;
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
-    expect(cookie).toMatch(/Path=\/api\/auth(;|$)/i);
+    expect(cookie).toMatch(/Path=\/api(;|$)/i);
     expect(cookie).toMatch(/Max-Age=2592000/i);
     expect(cookie).not.toMatch(/Secure/i);
-
-    const token = refreshTokenFrom(res)!;
-    const { rows } = await t.db.query('SELECT id FROM sessions WHERE id = $1', [
-      createHash('sha256').update(token).digest('hex'),
-    ]);
-    expect(rows).toHaveLength(1);
+    expect(setCookie(res, LEGACY_REFRESH_COOKIE)).toBeUndefined();
   });
 
   // AC3
-  it('issues an HS256 JWT with sub = user id that expires after 15 minutes', async () => {
+  it('issues an HS256 JWT whose sub hashes to the session row id, with uid = user id, expiring after 15 minutes', async () => {
     const res = await login(t, creds);
-    const [header, payload] = (res.body.accessToken as string)
-      .split('.')
-      .slice(0, 2)
-      .map((part) => JSON.parse(Buffer.from(part, 'base64url').toString()));
+    const accessToken = accessTokenFrom(res)!;
+    const { header, payload } = decodeJwt(accessToken);
 
     expect(header.alg).toBe('HS256');
-    expect(payload.sub).toBe(res.body.user.id);
-    expect(payload.exp - payload.iat).toBe(15 * 60);
+    expect(payload.uid).toBe(res.body.user.id);
+    expect(payload.sub).not.toBe(res.body.user.id);
+    expect((payload.exp as number) - (payload.iat as number)).toBe(15 * 60);
+
+    const { rows } = await t.db.query('SELECT id, user_id, expires_at, revoked_at FROM sessions WHERE id = $1', [
+      sessionIdOf(accessToken),
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).not.toBe(payload.sub);
+    expect(rows[0].user_id).toBe(res.body.user.id);
+    expect(rows[0].revoked_at).toBeNull();
+    const days = (new Date(rows[0].expires_at).getTime() - Date.now()) / 86_400_000;
+    expect(days).toBeGreaterThan(29.9);
+    expect(days).toBeLessThanOrEqual(30);
   });
 
   // AC3
-  it('replaces the refresh token the client already had', async () => {
-    const first = refreshTokenFrom(await login(t, creds))!;
-    const second = await login(t, creds, { refreshToken: first });
+  it('revokes (without deleting) the session the client already had', async () => {
+    const first = accessTokenFrom(await login(t, creds))!;
+    const second = await login(t, creds, { accessToken: first });
 
     expect(second.status).toBe(200);
-    const { rows } = await t.db.query('SELECT id FROM sessions');
-    const ids = rows.map((r) => r.id);
-    expect(ids).not.toContain(createHash('sha256').update(first).digest('hex'));
-    expect(ids).toContain(createHash('sha256').update(refreshTokenFrom(second)!).digest('hex'));
+    const { rows } = await t.db.query('SELECT id, revoked_at FROM sessions');
+    const byId = new Map(rows.map((r) => [r.id, r.revoked_at]));
+    expect(byId.get(sessionIdOf(first))).toBeInstanceOf(Date);
+    expect(byId.get(sessionIdOf(accessTokenFrom(second)!))).toBeNull();
+    expect((await postAuth(t, 'refresh', undefined, { accessToken: first })).status).toBe(401);
   });
 
   // AC4
@@ -93,7 +103,7 @@ describe('POST /api/auth/login', () => {
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: { code: 'INVALID_CREDENTIALS', message: 'Incorrect email or password' } });
-    expect(refreshCookie(res)).toBeUndefined();
+    expect(accessCookie(res)).toBeUndefined();
   });
 
   // AC4
@@ -125,7 +135,7 @@ describe('POST /api/auth/login', () => {
     expect(blocked.body).toEqual({
       error: { code: 'RATE_LIMITED', message: 'Too many attempts. Please try again later.' },
     });
-    expect(refreshCookie(blocked)).toBeUndefined();
+    expect(accessCookie(blocked)).toBeUndefined();
   });
 
   // AC5
@@ -158,17 +168,19 @@ describe('POST /api/auth/login', () => {
   });
 
   // AC8
-  it('never logs the password or tokens and never returns the refresh token in the body', async () => {
+  it('never logs the password or tokens and never returns a token in the body', async () => {
     const spies = (['log', 'error', 'warn', 'info'] as const).map((m) => vi.spyOn(console, m));
     const res = await login(t, creds);
     await login(t, { ...creds, password: 'wrong password' });
 
-    const refreshToken = refreshTokenFrom(res)!;
-    expect(JSON.stringify(res.body)).not.toContain(refreshToken);
+    const accessToken = accessTokenFrom(res)!;
+    const sessionToken = String(decodeJwt(accessToken).payload.sub);
+    expect(Object.keys(res.body)).toEqual(['user']);
+    expect(JSON.stringify(res.body)).not.toContain(sessionToken);
     for (const spy of spies) {
       for (const call of spy.mock.calls) {
         const line = JSON.stringify(call);
-        for (const secret of [creds.password, 'wrong password', refreshToken, res.body.accessToken]) {
+        for (const secret of [creds.password, 'wrong password', accessToken, sessionToken]) {
           expect(line).not.toContain(secret);
         }
       }
@@ -190,19 +202,26 @@ describe('GET /api/auth/me', () => {
   });
 
   // AC6
-  it('returns 200 { user } for a valid Bearer access token', async () => {
+  it('returns 200 { user } for a valid access cookie', async () => {
     const res = await getMe(t, accessToken);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ user });
   });
 
   // AC6
+  it('ignores an Authorization: Bearer header', async () => {
+    const res = await request(t.app).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
+    expect(res.status).toBe(401);
+  });
+
+  // AC6
   it.each([
     ['missing', undefined],
     ['malformed', 'not-a-jwt'],
-    ['badly signed', new JwtService({ secret: randomBytes(32).toString('hex') }).sign({ sub: 'x' })],
-    ['expired', new JwtService({ secret: TEST_JWT_SECRET }).sign({ sub: 'x', exp: Math.floor(Date.now() / 1000) - 1 })],
-    ['alg=none', `${Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url')}.${Buffer.from('{"sub":"x"}').toString('base64url')}.`],
+    ['badly signed', signJwt({ sub: 'x', uid: 'y' }, randomBytes(32).toString('hex'))],
+    ['expired', signJwt({ sub: 'x', uid: 'y', exp: Math.floor(Date.now() / 1000) - 1 })],
+    ['missing uid', signJwt({ sub: 'x' })],
+    ['alg=none', `${Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url')}.${Buffer.from('{"sub":"x","uid":"y"}').toString('base64url')}.`],
   ])('returns 401 UNAUTHENTICATED when the token is %s', async (_case, token) => {
     const res = await getMe(t, token);
     expect(res.status).toBe(401);
@@ -221,7 +240,7 @@ describe('GET /api/auth/me', () => {
   });
 
   it('returns 401 for a valid token whose user no longer exists', async () => {
-    const orphan = new JwtService({ secret: TEST_JWT_SECRET }).sign({ sub: '00000000-0000-0000-0000-000000000000' });
+    const orphan = signJwt({ sub: 'x', uid: '00000000-0000-0000-0000-000000000000' });
     expect((await getMe(t, orphan)).status).toBe(401);
   });
 });

@@ -1,14 +1,14 @@
-import type { AuthResponse, PublicUser } from '@flower-shop/shared';
+import type { AuthResponse } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { APP_CONFIG, type AppConfig } from '../../../app.config.js';
+import { readAccessToken, setAccessCookie } from './access-cookie.js';
 import { AccessTokenService } from './access-token.service.js';
 import type { IssuedSession } from './auth.types.js';
-import { setRefreshCookie } from './refresh-cookie.js';
 
 /**
- * The one way register, login and refresh respond: the body is `{ accessToken, user }`. Only a
- * newly opened session (register, login) sets the refresh-token cookie; refresh never does.
+ * The one way register, login and refresh respond: a new access token for the session goes into
+ * the httpOnly cookie, and the body is `{ user }`. The refresh session itself never leaves the DB.
  */
 @Injectable()
 export class TokenIssuer {
@@ -17,14 +17,19 @@ export class TokenIssuer {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
-  /** Register / login: puts the new refresh token in the httpOnly cookie (never the body). */
-  async respond(res: Response, { user, refreshToken }: IssuedSession): Promise<AuthResponse> {
-    setRefreshCookie(res, refreshToken, this.config.secureCookies);
-    return this.accessFor(user);
+  async respond(res: Response, { user, sessionToken }: IssuedSession): Promise<AuthResponse> {
+    const accessToken = await this.accessTokens.sign({ sessionToken, userId: user.id });
+    setAccessCookie(res, accessToken, this.config.secureCookies);
+    return { user };
   }
 
-  /** Refresh: a new access token only — the existing refresh token and cookie are left as they are. */
-  async accessFor(user: PublicUser): Promise<AuthResponse> {
-    return { accessToken: await this.accessTokens.sign(user.id), user };
+  /**
+   * The session token inside the request's access cookie, when it is signed with our secret —
+   * expired or not. Undefined when there is no cookie or it is forged / malformed.
+   */
+  async sessionTokenFrom(req: Request): Promise<string | undefined> {
+    const token = readAccessToken(req);
+    if (!token) return undefined;
+    return (await this.accessTokens.verifyIgnoringExpiry(token))?.sessionToken;
   }
 }

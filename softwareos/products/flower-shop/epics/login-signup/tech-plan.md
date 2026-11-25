@@ -7,33 +7,35 @@
 Access + refresh tokens. The API exposes auth routes (register, login, refresh, logout, me);
 passwords are hashed with argon2id. On login or sign-up the server issues:
 
-- an **access token**: a JWT (HS256, `sub` = user id, `iat`, `exp`) valid for 15 minutes, signed with
-  `JWT_ACCESS_SECRET`. Clients send it as `Authorization: Bearer <token>`; the server verifies the
-  signature and expiry without a DB lookup.
-- a **refresh token**: a random 32-byte token valid for 30 days, stored only as a SHA-256 hash in the
-  `sessions` table. `POST /api/auth/refresh` exchanges it for a new access token and rotates it
-  (old row deleted, new one created). Logout deletes the row.
+- a **refresh session**: a `sessions` row valid for a fixed 30 days (no rotation, no sliding expiry).
+  Its `id` is the SHA-256 of a random 32-byte session token; the session never leaves the server.
+- an **access token**: a JWT (HS256, `sub` = the raw session token, `uid` = user id, `iat`, `exp`)
+  valid for 15 minutes, signed with `JWT_ACCESS_SECRET`, set as an httpOnly, SameSite=Lax cookie
+  `access_token` on `Path=/api` with a 30-day Max-Age (so an expired JWT can still reach `/refresh`).
+  Protected routes verify the signature and expiry without a DB lookup.
 
-The web client keeps the access token in memory only and the refresh token in an httpOnly,
-SameSite=Lax cookie scoped to `/api/auth`; on load it calls `/refresh` to restore the session. A
-future mobile client sends both tokens in headers/body and stores them in the platform's secure
-storage. A `JwtAuthGuard` protects authenticated endpoints (`/me`, later checkout). The React client
-has an AuthContext, Login and Sign-up pages, and redirects back to checkout after authentication.
+`POST /api/auth/refresh` takes the access cookie (expired is fine, signature must be valid), finds the
+session by SHA-256 of `sub` where `revoked_at IS NULL` and `expires_at > now()`, and sets a new
+access cookie. Logout sets `revoked_at` (the row is kept until a weekly job deletes expired rows), so
+the access token can no longer be refreshed. On load the web client calls `/refresh` to restore the
+session; it never holds a token itself. A `JwtAuthGuard` protects authenticated endpoints (`/me`,
+later checkout). The React client has an AuthContext, Login and Sign-up pages, and redirects back to
+checkout after authentication.
 
-Chosen over cookie-only server sessions so the same API serves a future mobile app and follows the
-common token pattern. Trade-off: an access token can't be revoked, so after logout it stays valid
-for up to 15 minutes; the refresh token is revoked immediately.
+Chosen over cookie-only server sessions to keep stateless access checks and the common token
+pattern. Trade-off: an access token can't be revoked, so a copy taken before logout stays valid on
+protected routes for up to 15 minutes; refresh is blocked immediately.
 
 ## Architecture Impact
 
 - **Database:** new `users` table (id, name, email unique and case-insensitive, phone,
-  password_hash, timestamps); new `sessions` table holding refresh-token hashes (no schema change
-  from the cookie-session design).
+  password_hash, timestamps); new `sessions` table holding refresh sessions (`id` = token hash,
+  `user_id`, `expires_at`, `revoked_at`).
 - **API server:** `/api/auth/*` routes including `/refresh`; JWT signing/verification (`@nestjs/jwt`)
   and a `JwtAuthGuard`; rate limiting on login.
 - **Config:** new required secret `JWT_ACCESS_SECRET` (placeholder only in `.env.example`).
-- **Web client:** AuthContext holding the access token in memory, an API client that sends the
-  Bearer header and refreshes once on `401`, Login and Sign-up pages, route guard on checkout.
+- **Web client:** AuthContext holding only the user, an API client that relies on the httpOnly
+  cookie and refreshes once on `401`, Login and Sign-up pages, route guard on checkout.
 - No new services or infra.
 
 ## Risks & Unknowns
@@ -42,15 +44,16 @@ for up to 15 minutes; the refresh token is revoked immediately.
   to scaffold them, or depend on whichever epic does.
 - Cart merge: the guest cart must survive login. Where a guest cart lives is still open.
 - Brute force and credential stuffing: need login rate limiting.
-- CSRF on the refresh cookie (`/refresh`, `/logout`): SameSite plus origin checks. Bearer-authenticated
-  requests aren't exposed to CSRF.
+- CSRF: the access cookie is sent to the whole API, so SameSite=Lax plus the origin check on every
+  state-changing request are what protect it; GET routes must stay side-effect free.
 - Access tokens can't be revoked: up to 15 minutes of access after logout or a block. Acceptable for
   the shop; immediate revocation would need a per-request DB check.
+- The access cookie is also the key to refreshing for 30 days: whoever steals it can refresh until
+  logout or expiry. Same exposure as the former refresh cookie; httpOnly keeps it from page scripts.
 - `JWT_ACCESS_SECRET` leak lets anyone mint tokens: keep it out of git, rotate it if exposed (rotation
   logs everyone out within 15 minutes).
-- XSS can read the in-memory access token while the page is open, but not the httpOnly refresh cookie.
-- Refresh-token reuse detection (revoking a whole session family when an old token is replayed) is
-  not in the MVP; rotation only.
+- XSS can't read the httpOnly access cookie, but can still make requests from the page while it's open.
+- No rotation and no reuse detection in the MVP; a mobile client would need a non-cookie variant.
 - Email case-normalisation and uniqueness.
 - No password reset at launch: locked-out users need manual support.
 

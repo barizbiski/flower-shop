@@ -26,7 +26,7 @@ export class LoginService {
    * Checks the credentials and opens a new session. Unknown email and wrong password fail the
    * same way, in the same time (the dummy hash is verified when there's no user).
    */
-  async login({ email, password }: LoginInput, { ip, currentRefreshToken }: LoginContext): Promise<IssuedSession> {
+  async login({ email, password }: LoginInput, { ip, currentSessionToken }: LoginContext): Promise<IssuedSession> {
     const limitKey = LoginRateLimiter.key(ip, email);
     if (this.limiter.isBlocked(limitKey)) {
       throw new HttpError(429, ERROR_CODES.RATE_LIMITED, LOGIN_MESSAGES.rateLimited);
@@ -41,26 +41,29 @@ export class LoginService {
     this.limiter.reset(limitKey);
 
     const { passwordHash: _omit, ...user } = found;
-    const refreshToken = await this.db.transaction(async (client) => {
-      if (currentRefreshToken) await this.sessions.deleteByToken(currentRefreshToken, client);
+    const sessionToken = await this.db.transaction(async (client) => {
+      if (currentSessionToken) await this.sessions.revokeByToken(currentSessionToken, client);
       return this.sessions.create(user.id, client);
     });
-    return { user, refreshToken };
+    return { user, sessionToken };
   }
 
   /**
-   * The user behind a live refresh token, for issuing a new access token; 401 if it's missing,
-   * unknown or expired. No rotation: the refresh token and its session row stay unchanged.
+   * The session behind an access token's `sub`, for issuing a new access token; 401 if it's
+   * missing, unknown, revoked or expired. No rotation: the session row stays unchanged.
    */
-  async refresh(refreshToken: string | undefined): Promise<PublicUser> {
-    const user = refreshToken ? await this.sessions.findUserByToken(refreshToken) : null;
-    if (!user) throw unauthenticated();
-    return user;
+  async refresh(sessionToken: string | undefined): Promise<IssuedSession> {
+    const user = sessionToken ? await this.sessions.findUserByToken(sessionToken) : null;
+    if (!sessionToken || !user) throw unauthenticated();
+    return { user, sessionToken };
   }
 
-  /** Ends the session behind a refresh token. Idempotent: no or an unknown token is fine. */
-  async logout(refreshToken: string | undefined): Promise<void> {
-    if (refreshToken) await this.sessions.deleteByToken(refreshToken);
+  /**
+   * Revokes the session behind an access token's `sub` (the row is kept until it expires), so the
+   * token can no longer be refreshed. Idempotent: no, an unknown or an already revoked token is fine.
+   */
+  async logout(sessionToken: string | undefined): Promise<void> {
+    if (sessionToken) await this.sessions.revokeByToken(sessionToken);
   }
 
   /** The user behind a verified access token; 401 if the account no longer exists. */

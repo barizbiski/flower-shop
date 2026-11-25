@@ -16,14 +16,14 @@ export class RegisterService {
     @Inject(SessionsRepository) private readonly sessions: SessionsRepository,
   ) {}
 
-  /** Creates the user and their first refresh token in one transaction. */
+  /** Creates the user and their first refresh session in one transaction. */
   async register({ name, email, phone, password }: RegisterInput): Promise<IssuedSession> {
     const passwordHash = await hashPassword(password);
     try {
       return await this.db.transaction(async (client) => {
         const user = await this.users.insert({ name, email, phone, passwordHash }, client);
-        const refreshToken = await this.sessions.create(user.id, client);
-        return { user, refreshToken };
+        const sessionToken = await this.sessions.create(user.id, client);
+        return { user, sessionToken };
       });
     } catch (err) {
       if (err instanceof EmailTakenError) {

@@ -6,7 +6,7 @@ import { HttpError } from '../../../common/http/errors.js';
 import { parseBodyOrThrow } from '../../../common/validation/parse-body-or-throw.js';
 import { CurrentUserId } from '../shared/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../shared/jwt-auth.guard.js';
-import { clearRefreshCookie, readRefreshToken } from '../shared/refresh-cookie.js';
+import { clearAuthCookies } from '../shared/access-cookie.js';
 import { TokenIssuer } from '../shared/token-issuer.service.js';
 import { loginSchema } from './login.schema.js';
 import { LoginService } from './login.service.js';
@@ -30,19 +30,21 @@ export class LoginController {
     const input = parseBodyOrThrow(loginSchema, body);
     const session = await this.loginService.login(input, {
       ip: req.ip ?? '',
-      currentRefreshToken: readRefreshToken(req),
+      currentSessionToken: await this.tokens.sessionTokenFrom(req),
     });
     return this.tokens.respond(res, session);
   }
 
+  /** New access token for the session in the access cookie's `sub`; the cookie's JWT may have expired. */
   @Post(AUTH_ENDPOINTS.refresh)
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
     try {
-      return await this.tokens.accessFor(await this.loginService.refresh(readRefreshToken(req)));
+      const session = await this.loginService.refresh(await this.tokens.sessionTokenFrom(req));
+      return await this.tokens.respond(res, session);
     } catch (err) {
-      // A dead refresh token is useless to the browser; drop it so it stops being sent.
-      if (err instanceof HttpError && err.status === 401) clearRefreshCookie(res, this.config.secureCookies);
+      // A cookie whose session is dead is useless to the browser; drop it so it stops being sent.
+      if (err instanceof HttpError && err.status === 401) clearAuthCookies(res, this.config.secureCookies);
       throw err;
     }
   }
@@ -50,8 +52,8 @@ export class LoginController {
   @Post(AUTH_ENDPOINTS.logout)
   @HttpCode(204)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
-    await this.loginService.logout(readRefreshToken(req));
-    clearRefreshCookie(res, this.config.secureCookies);
+    await this.loginService.logout(await this.tokens.sessionTokenFrom(req));
+    clearAuthCookies(res, this.config.secureCookies);
   }
 
   @Get(AUTH_ENDPOINTS.me)

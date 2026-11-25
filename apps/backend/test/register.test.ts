@@ -1,6 +1,14 @@
-import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getMe, postAuth, refreshCookie, refreshTokenFrom, validUser as valid, type TestApp } from './helpers/auth.js';
+import {
+  accessCookie,
+  accessTokenFrom,
+  decodeJwt,
+  getMe,
+  postAuth,
+  sessionIdOf,
+  validUser as valid,
+  type TestApp,
+} from './helpers/auth.js';
 import { startTestApp } from './helpers/testApp.js';
 
 function register(t: TestApp, body: unknown, origin?: string | null) {
@@ -21,18 +29,16 @@ describe('POST /api/auth/register', () => {
   });
 
   // AC2
-  it('creates the user, returns 201 with an access token and the public user, and sets a refresh cookie', async () => {
+  it('creates the user, returns 201 with the public user, and sets the access cookie', async () => {
     const res = await register(t, valid);
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
-      accessToken: expect.any(String),
       user: { id: expect.any(String), name: 'Dana Levi', email: 'dana.levi@example.com', phone: '+972501234567' },
     });
-    expect(refreshCookie(res)).toBeDefined();
-    expect(JSON.stringify(res.body)).not.toContain(refreshTokenFrom(res)!);
+    expect(accessCookie(res)).toBeDefined();
 
-    const me = await getMe(t, res.body.accessToken);
+    const me = await getMe(t, accessTokenFrom(res));
     expect(me.status).toBe(200);
     expect(me.body.user).toEqual(res.body.user);
 
@@ -54,7 +60,7 @@ describe('POST /api/auth/register', () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('EMAIL_TAKEN');
-    expect(refreshCookie(res)).toBeUndefined();
+    expect(accessCookie(res)).toBeUndefined();
     const { rows } = await t.db.query('SELECT count(*)::int AS n FROM users');
     expect(rows[0].n).toBe(1);
   });
@@ -75,7 +81,7 @@ describe('POST /api/auth/register', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(Object.keys(res.body.error.fields)).toEqual([field]);
-    expect(refreshCookie(res)).toBeUndefined();
+    expect(accessCookie(res)).toBeUndefined();
   });
 
   // AC4
@@ -107,23 +113,24 @@ describe('POST /api/auth/register', () => {
   });
 
   // AC6
-  it('sets an HttpOnly, SameSite=Lax, 30-day refresh cookie on /api/auth and stores only the token hash', async () => {
+  it('sets an HttpOnly, SameSite=Lax access cookie on /api and opens a 30-day session stored only as a hash', async () => {
     const res = await register(t, valid);
-    const cookie = refreshCookie(res)!;
+    const cookie = accessCookie(res)!;
 
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
-    expect(cookie).toMatch(/Path=\/api\/auth(;|$)/i);
+    expect(cookie).toMatch(/Path=\/api(;|$)/i);
     expect(cookie).not.toMatch(/Secure/i);
     expect(cookie).toMatch(/Max-Age=2592000/i);
 
-    const token = refreshTokenFrom(res)!;
-    expect(token.length).toBeGreaterThanOrEqual(43);
+    const accessToken = accessTokenFrom(res)!;
+    const sessionToken = String(decodeJwt(accessToken).payload.sub);
+    expect(sessionToken.length).toBeGreaterThanOrEqual(43);
 
     const { rows } = await t.db.query('SELECT id, user_id, expires_at FROM sessions');
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).not.toBe(token);
-    expect(rows[0].id).toBe(createHash('sha256').update(token).digest('hex'));
+    expect(rows[0].id).not.toBe(sessionToken);
+    expect(rows[0].id).toBe(sessionIdOf(accessToken));
     expect(rows[0].user_id).toBe(res.body.user.id);
     const days = (new Date(rows[0].expires_at).getTime() - Date.now()) / 86_400_000;
     expect(days).toBeGreaterThan(29.9);
@@ -157,8 +164,8 @@ describe('POST /api/auth/register in production', () => {
   });
 
   // AC6
-  it('marks the refresh cookie Secure', async () => {
+  it('marks the access cookie Secure', async () => {
     const res = await register(t, valid);
-    expect(refreshCookie(res)).toMatch(/Secure/i);
+    expect(accessCookie(res)).toMatch(/Secure/i);
   });
 });

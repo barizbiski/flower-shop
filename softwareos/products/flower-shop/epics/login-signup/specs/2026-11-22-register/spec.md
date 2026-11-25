@@ -25,11 +25,11 @@ to the `login-logout` and `checkout-auth-gate` specs.
 ## Acceptance Criteria
 
 1. AC1: `/signup` shows a form with Full name, Email, Phone and Password fields, each with a visible label, plus a "Create account" button, styled like the design canvas (DM Sans, #7A2E4D primary button, 46px rounded inputs).
-2. AC2: Submitting valid details creates the user, returns `201` with `{ accessToken, user: { id, name, email, phone } }` (a 15-minute JWT access token, see `login-logout`), and sets an httpOnly `refresh_token` cookie. The browser then goes to the home page (or a safe same-site `?next=` path), showing the shopper as logged in by first name.
+2. AC2: Submitting valid details creates the user, returns `201` with `{ user: { id, name, email, phone } }` (no token in the body), and sets the 15-minute JWT access token in an httpOnly `access_token` cookie (see `login-logout`). The browser then goes to the home page (or a safe same-site `?next=` path), showing the shopper as logged in by first name.
 3. AC3: Email is trimmed and lowercased before saving. Signing up with an email that already exists in any letter case returns `409` (`EMAIL_TAKEN`), and the form shows "An account with this email already exists" with a link to log in.
 4. AC4: Invalid input returns `400` (`VALIDATION_ERROR`) with errors per field, shown next to each field: name is required (≤100 characters), email must be valid, phone must be 9–15 digits (an optional leading + is allowed, spaces and dashes are ignored), password must be 8–128 characters. The client checks the same rules before submitting.
 5. AC5: The password is stored only as an argon2id hash. No response, log line or error contains the password or the hash.
-6. AC6: The `refresh_token` cookie is `HttpOnly` and `SameSite=Lax` (plus `Secure` in production), scoped to `Path=/api/auth`, and expires after 30 days. The `sessions` table stores only a SHA-256 hash of the refresh token.
+6. AC6: The `access_token` cookie is `HttpOnly` and `SameSite=Lax` (plus `Secure` in production), scoped to `Path=/api`, with a 30-day Max-Age. Register opens a 30-day refresh session that stays on the server: the `sessions` row's `id` is the SHA-256 hash of the session token carried in the access token's `sub`.
 7. AC7: A register request whose `Origin` doesn't match the allowed web origin is rejected with `403`.
 8. AC8: Running `npm run dev` from the repo root starts the API and web app against local Postgres, and `npm test` runs both workspaces' tests.
 
@@ -64,3 +64,4 @@ to the `login-logout` and `checkout-auth-gate` specs.
 | 2026-11-22 | barizbiski | change | Branch renamed feat/login-signup/register → feat/register (user request; deviates from git-workflow naming) | — |
 | 2026-11-24 | barizbiski | change | PGlite removed; dev and tests run on the docker-compose Postgres (user request) | — |
 | 2026-11-24 | barizbiski | change | AC2 and AC6: register now returns `accessToken` and sets a `refresh_token` cookie (Path=/api/auth) instead of `sid` — epic moved to access + refresh tokens for a future mobile app; implemented in `login-logout` | login-logout T18 |
+| 2026-11-25 | barizbiski | change | AC2 and AC6: register returns `201 { user }` and sets the httpOnly `access_token` cookie (`Path=/api`); the refresh session is the `sessions` row only (hash of the JWT `sub`), never sent to the client — the refresh token should never reach the client; implemented in `login-logout` | login-logout T22 |

@@ -63,7 +63,7 @@ describe('Header', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, { error: { code: 'INVALID_CREDENTIALS', message: 'x' } }))
-      .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'at-1', user: dana }));
+      .mockResolvedValueOnce(jsonResponse(200, { user: dana }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderHeader(null);

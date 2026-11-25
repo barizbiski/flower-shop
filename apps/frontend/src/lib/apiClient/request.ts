@@ -13,7 +13,7 @@ async function request<T>(method: HttpMethod, path: string, payload?: unknown): 
 }
 
 /**
- * GETs JSON from a same-origin API path, with the access token as a Bearer header.
+ * GETs JSON from a same-origin API path (the access-token cookie is sent by the browser).
  * Resolves for any HTTP status; rejects only on network failure.
  */
 export function getJson<T>(path: string): Promise<ApiResponse<T>> {
@@ -21,8 +21,8 @@ export function getJson<T>(path: string): Promise<ApiResponse<T>> {
 }
 
 /**
- * POSTs JSON to a same-origin API path (refresh cookie included on /api/auth), with the access
- * token as a Bearer header. Resolves for any HTTP status; rejects only on network failure.
+ * POSTs JSON to a same-origin API path (the access-token cookie is sent by the browser).
+ * Resolves for any HTTP status; rejects only on network failure.
  */
 export function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
   return request<T>('POST', path, payload);

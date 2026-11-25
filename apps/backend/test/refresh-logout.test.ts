@@ -1,5 +1,17 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { getMe, postAuth, refreshCookie, refreshTokenFrom, registerUser, type TestApp } from './helpers/auth.js';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  LEGACY_REFRESH_COOKIE,
+  accessCookie,
+  accessTokenFrom,
+  decodeJwt,
+  getMe,
+  postAuth,
+  registerUser,
+  sessionIdOf,
+  setCookie,
+  signJwt,
+  type TestApp,
+} from './helpers/auth.js';
 import { startTestApp } from './helpers/testApp.js';
 
 async function sessionCount(t: TestApp): Promise<number> {
@@ -8,8 +20,14 @@ async function sessionCount(t: TestApp): Promise<number> {
 }
 
 async function sessionRow(t: TestApp) {
-  const { rows } = await t.db.query('SELECT id, user_id, expires_at FROM sessions');
+  const { rows } = await t.db.query('SELECT id, user_id, expires_at, revoked_at FROM sessions');
   return rows[0];
+}
+
+/** Moves the clock past the access token's 15-minute expiry. */
+function afterAccessTokenExpiry() {
+  const realNow = Date.now();
+  vi.spyOn(Date, 'now').mockReturnValue(realNow + 15 * 60 * 1000 + 1000);
 }
 
 describe('POST /api/auth/refresh', () => {
@@ -26,71 +44,79 @@ describe('POST /api/auth/refresh', () => {
     await t.reset();
     session = await registerUser(t);
   });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-  // AC6
-  it('returns 200 { accessToken, user } without rotating: no new cookie, session row unchanged', async () => {
+  it('returns 200 { user } and a new access cookie for the same session; the row is unchanged', async () => {
     const before = await sessionRow(t);
-    const res = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
+    const res = await postAuth(t, 'refresh', undefined, { accessToken: session.accessToken });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ accessToken: expect.any(String), user: session.user });
-    expect(refreshCookie(res)).toBeUndefined();
+    expect(res.body).toEqual({ user: session.user });
+    const renewed = accessTokenFrom(res)!;
+    expect(renewed).toBeTruthy();
+    expect(decodeJwt(renewed).payload.sub).toBe(decodeJwt(session.accessToken).payload.sub);
     expect(await sessionRow(t)).toEqual(before);
-    expect((await getMe(t, res.body.accessToken)).status).toBe(200);
+    expect((await getMe(t, renewed)).status).toBe(200);
   });
 
-  // AC6
-  it('accepts the refresh token in the JSON body (non-browser clients)', async () => {
-    const res = await postAuth(t, 'refresh', { refreshToken: session.refreshToken });
+  it('refreshes with an access token that has already expired', async () => {
+    afterAccessTokenExpiry();
+    expect((await getMe(t, session.accessToken)).status).toBe(401);
+
+    const res = await postAuth(t, 'refresh', undefined, { accessToken: session.accessToken });
     expect(res.status).toBe(200);
+    expect((await getMe(t, accessTokenFrom(res))).status).toBe(200);
   });
 
-  // AC6
-  it('keeps the same refresh token usable for repeated refreshes', async () => {
+  it('ignores a refresh token in the body (it is never sent to clients)', async () => {
+    const res = await postAuth(t, 'refresh', { refreshToken: 'anything' });
+    expect(res.status).toBe(401);
+  });
+
+  it('keeps the same session usable for repeated and concurrent refreshes', async () => {
     for (let i = 0; i < 3; i++) {
-      const res = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
-      expect(res.status).toBe(200);
+      expect((await postAuth(t, 'refresh', undefined, { accessToken: session.accessToken })).status).toBe(200);
     }
-    expect(await sessionCount(t)).toBe(1);
-  });
-
-  // AC6
-  it('lets concurrent refreshes with the same token (several tabs) all succeed', async () => {
     const results = await Promise.all([
-      postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken }),
-      postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken }),
+      postAuth(t, 'refresh', undefined, { accessToken: session.accessToken }),
+      postAuth(t, 'refresh', undefined, { accessToken: session.accessToken }),
     ]);
     expect(results.map((r) => r.status)).toEqual([200, 200]);
     expect(await sessionCount(t)).toBe(1);
   });
 
-  // AC6
   it.each([
-    ['missing', undefined],
-    ['unknown', 'not-a-real-token'],
-  ])('returns 401 UNAUTHENTICATED and clears the cookie when the token is %s', async (_case, refreshToken) => {
-    const res = await postAuth(t, 'refresh', undefined, { refreshToken });
+    ['missing', () => undefined],
+    ['malformed', () => 'not-a-jwt'],
+    ['signed with another secret', () => signJwt({ sub: 'x', uid: 'y' }, 'another-secret-another-secret-123')],
+    ['for an unknown session', () => signJwt({ sub: 'not-a-real-session', uid: 'y' })],
+  ])('returns 401 UNAUTHENTICATED and clears the cookie when the access token is %s', async (_case, token) => {
+    const res = await postAuth(t, 'refresh', undefined, { accessToken: token() });
 
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('UNAUTHENTICATED');
-    expect(refreshTokenFrom(res)).toBe('');
+    expect(accessTokenFrom(res)).toBe('');
   });
 
-  // AC6
-  it('returns 401 for an expired refresh token', async () => {
+  it('rejects a forged token that points at a real session', async () => {
+    const forged = signJwt(decodeJwt(session.accessToken).payload, 'another-secret-another-secret-123');
+    expect((await postAuth(t, 'refresh', undefined, { accessToken: forged })).status).toBe(401);
+  });
+
+  it('returns 401 once the session has passed its 30-day expiry', async () => {
     await t.db.query(`UPDATE sessions SET expires_at = now() - interval '1 second'`);
-    const res = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
+    const res = await postAuth(t, 'refresh', undefined, { accessToken: session.accessToken });
     expect(res.status).toBe(401);
   });
 
-  // AC8
-  it('rejects a refresh from a foreign Origin with 403 and keeps the token', async () => {
+  it('rejects a refresh from a foreign Origin with 403', async () => {
     const res = await postAuth(t, 'refresh', undefined, {
-      refreshToken: session.refreshToken,
+      accessToken: session.accessToken,
       origin: 'https://evil.example',
     });
     expect(res.status).toBe(403);
-    expect(await sessionCount(t)).toBe(1);
   });
 });
 
@@ -108,52 +134,65 @@ describe('POST /api/auth/logout', () => {
     await t.reset();
     session = await registerUser(t);
   });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-  // AC7
-  it('deletes the refresh token, clears the cookie and returns 204', async () => {
-    const res = await postAuth(t, 'logout', undefined, { refreshToken: session.refreshToken });
+  it('revokes the session without deleting it, clears the cookies and returns 204', async () => {
+    const res = await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
 
     expect(res.status).toBe(204);
     expect(res.text).toBe('');
-    expect(refreshTokenFrom(res)).toBe('');
-    expect(refreshCookie(res)).toMatch(/Path=\/api\/auth(;|$)/i);
-    expect(refreshCookie(res)).toMatch(/Expires=Thu, 01 Jan 1970/i);
-    expect(await sessionCount(t)).toBe(0);
+    expect(accessTokenFrom(res)).toBe('');
+    expect(accessCookie(res)).toMatch(/Path=\/api(;|$)/i);
+    expect(accessCookie(res)).toMatch(/Expires=Thu, 01 Jan 1970/i);
+    expect(setCookie(res, LEGACY_REFRESH_COOKIE)).toMatch(/Path=\/api\/auth(;|$)/i);
 
-    const refresh = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
+    const row = await sessionRow(t);
+    expect(row.id).toBe(sessionIdOf(session.accessToken));
+    expect(row.revoked_at).toBeInstanceOf(Date);
+  });
+
+  it('stops the access token from being refreshed after logout', async () => {
+    await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
+    const refresh = await postAuth(t, 'refresh', undefined, { accessToken: session.accessToken });
     expect(refresh.status).toBe(401);
   });
 
-  // AC7
+  it('revokes the session even when the access token has already expired', async () => {
+    afterAccessTokenExpiry();
+    await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
+    expect((await sessionRow(t)).revoked_at).toBeInstanceOf(Date);
+  });
+
+  it('is idempotent: a second logout keeps the first revocation time', async () => {
+    await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
+    const first = (await sessionRow(t)).revoked_at;
+    const again = await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
+    expect(again.status).toBe(204);
+    expect((await sessionRow(t)).revoked_at).toEqual(first);
+  });
+
   it.each([
     ['no', undefined],
-    ['an unknown', 'not-a-real-token'],
-  ])('returns 204 with %s refresh token', async (_case, refreshToken) => {
-    const res = await postAuth(t, 'logout', undefined, { refreshToken });
+    ['a malformed', 'not-a-jwt'],
+  ])('returns 204 with %s access token and leaves the session alone', async (_case, accessToken) => {
+    const res = await postAuth(t, 'logout', undefined, { accessToken });
     expect(res.status).toBe(204);
-    expect(await sessionCount(t)).toBe(1);
+    expect((await sessionRow(t)).revoked_at).toBeNull();
   });
 
-  // AC7
-  it('accepts the refresh token in the JSON body', async () => {
-    const res = await postAuth(t, 'logout', { refreshToken: session.refreshToken });
-    expect(res.status).toBe(204);
-    expect(await sessionCount(t)).toBe(0);
-  });
-
-  // AC7
-  it('leaves an access token issued before logout valid until it expires', async () => {
-    await postAuth(t, 'logout', undefined, { refreshToken: session.refreshToken });
+  it('leaves an access token issued before logout valid on protected routes until it expires', async () => {
+    await postAuth(t, 'logout', undefined, { accessToken: session.accessToken });
     expect((await getMe(t, session.accessToken)).status).toBe(200);
   });
 
-  // AC8
-  it('rejects a logout from a foreign Origin with 403 and keeps the session', async () => {
+  it('rejects a logout from a foreign Origin with 403 and keeps the session live', async () => {
     const res = await postAuth(t, 'logout', undefined, {
-      refreshToken: session.refreshToken,
+      accessToken: session.accessToken,
       origin: 'https://evil.example',
     });
     expect(res.status).toBe(403);
-    expect(await sessionCount(t)).toBe(1);
+    expect((await sessionRow(t)).revoked_at).toBeNull();
   });
 });

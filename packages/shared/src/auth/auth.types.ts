@@ -6,8 +6,10 @@ export interface PublicUser {
   phone: string;
 }
 
-/** Body of a successful register / login / refresh response. */
+/**
+ * Body of a successful register / login / refresh response. The access token is never in the body:
+ * it is set as an httpOnly cookie.
+ */
 export interface AuthResponse {
-  accessToken: string;
   user: PublicUser;
 }

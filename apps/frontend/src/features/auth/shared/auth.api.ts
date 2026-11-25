@@ -1,23 +1,16 @@
 import { AUTH_PATHS, type AuthResponse, type PublicUser } from '@flower-shop/shared';
-import {
-  getJson,
-  isApiError,
-  isAuthResponse,
-  postJson,
-  refreshAccessToken,
-  setAccessToken,
-} from '../../../lib/apiClient';
+import { getJson, isApiError, isAuthResponse, postJson, refreshAccessToken } from '../../../lib/apiClient';
 import type { CredentialsResponse } from './auth.types';
 
 /**
- * POSTs register or login credentials. On `successStatus` with `{ accessToken, user }` stores the
- * access token; a 400 with field errors is returned as `invalid`; anything else as its status.
+ * POSTs register or login credentials. On `successStatus` with `{ user }` (the server has set the
+ * access-token cookie) returns the user; a 400 with field errors is returned as `invalid`; anything
+ * else as its status.
  */
 export async function postCredentials(path: string, values: unknown, successStatus: number): Promise<CredentialsResponse> {
   try {
     const { status, body } = await postJson<AuthResponse>(path, values);
     if (status === successStatus && isAuthResponse(body)) {
-      setAccessToken(body.accessToken);
       return { ok: true, user: body.user };
     }
     if (status === 400 && isApiError(body) && body.error.fields) {
@@ -29,7 +22,7 @@ export async function postCredentials(path: string, values: unknown, successStat
   }
 }
 
-/** Restores the session from the refresh cookie; resolves to the user, or null when logged out. */
+/** Restores the session from the access-token cookie; resolves to the user, or null when logged out. */
 export async function refreshSession(): Promise<PublicUser | null> {
   try {
     const { status, body } = await refreshAccessToken<AuthResponse>();
@@ -39,14 +32,12 @@ export async function refreshSession(): Promise<PublicUser | null> {
   }
 }
 
-/** Ends the session on the server (best effort) and always drops the access token. */
+/** Ends the session on the server (best effort); the server clears the cookie. */
 export async function logoutUser(): Promise<void> {
   try {
     await postJson<null>(AUTH_PATHS.logout, {});
   } catch {
-    // Network failure: still log out locally.
-  } finally {
-    setAccessToken(null);
+    // Network failure: the caller still shows the logged-out state.
   }
 }
 

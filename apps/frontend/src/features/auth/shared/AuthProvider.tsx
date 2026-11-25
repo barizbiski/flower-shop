@@ -6,9 +6,9 @@ import { AuthContext } from './authContext';
 import type { AuthProviderProps, AuthStatus } from './auth.types';
 
 /**
- * Auth state for the app. The access token lives only in memory (inside apiClient); on mount the
- * provider calls /refresh, so a logged-in shopper stays logged in across reloads. `status` is
- * `loading` until that settles.
+ * Auth state for the app. The access token lives only in an httpOnly cookie; on mount the provider
+ * calls /refresh, so a logged-in shopper stays logged in across reloads. `status` is `loading`
+ * until that settles.
  */
 export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const seeded = initialUser !== undefined;

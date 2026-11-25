@@ -11,6 +11,7 @@
 - **Location:** `apps/backend/src/features/auth/` — `shared/` (`sessions.repo.ts`, `users.repo.ts`, `session-cookie.ts`, `auth.constants.ts`, `auth.types.ts`, `helpers/token.ts`, `helpers/password.ts`) is reused by login; `register/` (`register.controller.ts`, `register.service.ts`, `register.schema.ts`) is the pattern to copy into a new `login/` folder.
 - **Relevance:** Login, logout and `/me` live in the same NestJS module and reuse its session table, cookie and password helpers.
 - **Key patterns:** zod `parse*` returning `{ ok, data | fields }`, `HttpError(status, code, message, fields?)`, repositories taking an optional `Queryable` for transactions, `setSessionCookie`, `verifyPassword`, `hashToken`.
+- **Note (2026-11-25):** the cookie helper has since become `shared/access-cookie.ts` (`setAccessCookie`, `clearAuthCookies`, `readAccessToken`); `session-cookie.ts` / `refresh-cookie.ts` no longer exist.
 
 ### Sign-up form
 

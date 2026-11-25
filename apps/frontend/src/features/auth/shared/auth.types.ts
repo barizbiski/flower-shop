@@ -10,7 +10,7 @@ export interface AuthState {
   user: PublicUser | null;
   status: AuthStatus;
   setUser: (user: PublicUser | null) => void;
-  /** Ends the session on the server, drops the access token and shows the logged-out state. */
+  /** Ends the session on the server (which clears the cookie) and shows the logged-out state. */
   logout: () => Promise<void>;
 }
 

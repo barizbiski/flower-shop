@@ -27,7 +27,7 @@ describe('LoginPage', () => {
 
   // AC4 (client side)
   it('checks the input before submitting', async () => {
-    const fetchMock = mockFetch(200, { accessToken: 'at', user: dana });
+    const fetchMock = mockFetch(200, { user: dana });
     renderLogin();
     await submit('nope', '');
     expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('LoginPage', () => {
 
   // AC3
   it('logs in and goes to a safe ?next= path', async () => {
-    const fetchMock = mockFetch(200, { accessToken: 'at', user: dana });
+    const fetchMock = mockFetch(200, { user: dana });
     renderLogin('/login?next=%2Fcheckout');
     await submit();
     await waitFor(() => expect(screen.getByText('landed at /checkout as Dana Levi')).toBeInTheDocument());
@@ -47,7 +47,7 @@ describe('LoginPage', () => {
 
   // AC3
   it('ignores an unsafe ?next= and goes home', async () => {
-    mockFetch(200, { accessToken: 'at', user: dana });
+    mockFetch(200, { user: dana });
     renderLogin(`/login?next=${encodeURIComponent('//evil.example')}`);
     await submit();
     await waitFor(() => expect(screen.getByText('landed at / as Dana Levi')).toBeInTheDocument());

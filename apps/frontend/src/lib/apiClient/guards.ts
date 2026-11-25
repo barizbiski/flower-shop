@@ -5,12 +5,12 @@ export function isApiError(body: unknown): body is ApiErrorBody {
   return typeof body === 'object' && body !== null && 'error' in body;
 }
 
-/** True for the `{ accessToken, user }` body that register, login and refresh return. */
+/** True for the `{ user }` body that register, login and refresh return. */
 export function isAuthResponse(body: unknown): body is AuthResponse {
   return (
     typeof body === 'object' &&
     body !== null &&
-    typeof (body as { accessToken?: unknown }).accessToken === 'string' &&
-    'user' in body
+    typeof (body as { user?: unknown }).user === 'object' &&
+    (body as { user?: unknown }).user !== null
   );
 }
