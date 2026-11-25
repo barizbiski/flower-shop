@@ -6,6 +6,8 @@ export interface AppConfig {
   webOrigin: string;
   /** Set the Secure flag on cookies (production). */
   secureCookies: boolean;
+  /** HS256 secret for signing access tokens (JWT_ACCESS_SECRET). */
+  jwtAccessSecret: string;
 }
 
 /** DI token for the AppConfig passed to AppModule.forRoot(). */

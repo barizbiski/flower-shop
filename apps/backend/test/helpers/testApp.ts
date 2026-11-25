@@ -5,6 +5,8 @@ import { runMigrations } from '../../src/db/migrate.js';
 import { createPool, type Db } from '../../src/db/pool.js';
 
 export const WEB_ORIGIN = 'http://localhost:5173';
+/** Throwaway JWT signing secret, generated per test run. */
+export const TEST_JWT_SECRET = randomBytes(32).toString('hex');
 
 /** Server to create throwaway test databases on: TEST_DATABASE_URL, else DATABASE_URL (the docker-compose Postgres). */
 function adminUrl(): string {
@@ -34,7 +36,12 @@ export async function startTestApp(opts: { secureCookies?: boolean } = {}) {
 
   await runMigrations(url.toString(), 'up', { quiet: true });
   const db: Db = createPool(url.toString());
-  const nest = await createApp({ db, webOrigin: WEB_ORIGIN, secureCookies: opts.secureCookies ?? false });
+  const nest = await createApp({
+    db,
+    webOrigin: WEB_ORIGIN,
+    secureCookies: opts.secureCookies ?? false,
+    jwtAccessSecret: TEST_JWT_SECRET,
+  });
   return {
     app: nest.getHttpServer(),
     db,
