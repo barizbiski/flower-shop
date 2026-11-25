@@ -8,7 +8,7 @@
 
 ## Backend
 
-- Node.js with Express
+- Node.js with NestJS (Express platform)
 - TypeScript
 
 ## Data
