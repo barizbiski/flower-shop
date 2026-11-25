@@ -1,12 +1,12 @@
-import { NO_RETRY_ROUTES } from '../../constants/api';
-import type { ApiResponse } from '../../types/api';
+import { NO_RETRY_PATHS } from './apiClient.constants';
+import type { ApiResponse } from './apiClient.types';
 import { refreshAccessToken } from './refresh';
 import { send, type HttpMethod } from './send';
 
 /** Sends the request; on a 401 (outside the auth endpoints) refreshes once and retries. */
 async function request<T>(method: HttpMethod, path: string, payload?: unknown): Promise<ApiResponse<T>> {
   const first = await send(method, path, payload);
-  if (first.status !== 401 || NO_RETRY_ROUTES.has(path)) return first as ApiResponse<T>;
+  if (first.status !== 401 || NO_RETRY_PATHS.has(path)) return first as ApiResponse<T>;
   const refreshed = await refreshAccessToken();
   if (refreshed.status !== 200) return first as ApiResponse<T>;
   return (await send(method, path, payload)) as ApiResponse<T>;

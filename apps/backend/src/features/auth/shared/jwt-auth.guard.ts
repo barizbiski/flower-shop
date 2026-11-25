@@ -1,6 +1,6 @@
+import { ERROR_CODES } from '@flower-shop/shared';
 import { Inject, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
-import { ERROR_CODES } from '../../../common/constants/error-codes.js';
-import { HttpError } from '../../../http/errors.js';
+import { HttpError } from '../../../common/http/errors.js';
 import { AccessTokenService } from './access-token.service.js';
 import { AUTH_MESSAGES } from './auth.constants.js';
 import type { AuthenticatedRequest } from './auth.types.js';

@@ -1,14 +1,14 @@
+import { ERROR_CODES, LOGIN_MESSAGES, type PublicUser } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { ERROR_CODES } from '../../../common/constants/error-codes.js';
 import { DatabaseService } from '../../../db/database.service.js';
-import { HttpError } from '../../../http/errors.js';
+import { HttpError } from '../../../common/http/errors.js';
 import { AUTH_MESSAGES } from '../shared/auth.constants.js';
-import type { IssuedSession, PublicUser } from '../shared/auth.types.js';
+import type { IssuedSession } from '../shared/auth.types.js';
 import { verifyPassword } from '../shared/helpers/password.js';
 import { SessionsRepository } from '../shared/sessions.repo.js';
 import { UsersRepository } from '../shared/users.repo.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
-import { DUMMY_PASSWORD_HASH, LOGIN_MESSAGES } from './login.constants.js';
+import { DUMMY_PASSWORD_HASH } from './login.constants.js';
 import type { LoginContext, LoginInput } from './login.types.js';
 
 const unauthenticated = () => new HttpError(401, ERROR_CODES.UNAUTHENTICATED, AUTH_MESSAGES.unauthenticated);

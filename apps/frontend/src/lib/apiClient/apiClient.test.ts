@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { jsonResponse as json } from '../../test/helpers';
 import { getJson, postJson, refreshAccessToken, setAccessToken, setSessionExpiredHandler } from '.';
-
-const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
 
 function authHeader(call: unknown[]): string | undefined {
   return (call[1] as RequestInit & { headers: Record<string, string> }).headers.Authorization;

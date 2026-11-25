@@ -1,15 +1,4 @@
-import { PASSWORD_MAX_LENGTH } from '../shared/auth.constants.js';
-
-// Keep messages in sync with apps/frontend/src/features/auth/login/.
-export const LOGIN_MESSAGES = {
-  emailInvalid: 'Please enter a valid email address',
-  passwordRequired: 'Please enter your password',
-  passwordTooLong: `Password must be ${PASSWORD_MAX_LENGTH} characters or fewer`,
-  formInvalid: 'Please fix the highlighted fields',
-  /** Same message for a wrong password and an unknown email, so it doesn't reveal which. */
-  invalidCredentials: 'Incorrect email or password',
-  rateLimited: 'Too many attempts. Please try again later.',
-} as const;
+// LOGIN_MESSAGES live in @flower-shop/shared (the login form shows them too).
 
 /** Failed logins allowed per IP + email within one window; the next attempt gets 429. */
 export const LOGIN_MAX_FAILURES = 5;

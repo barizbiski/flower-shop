@@ -1,7 +1,6 @@
 import { Catch, HttpException, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
-import { ERROR_CODES, type ErrorCode } from '../common/constants/error-codes.js';
-import type { FieldErrors } from '../common/types/field-errors.js';
+import { ERROR_CODES, type ErrorCode, type FieldErrors } from '@flower-shop/shared';
 
 export class HttpError extends Error {
   constructor(

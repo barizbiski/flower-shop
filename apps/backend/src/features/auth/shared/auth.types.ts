@@ -1,12 +1,7 @@
+import type { PublicUser } from '@flower-shop/shared';
 import type { Request } from 'express';
 
-/** User fields safe to return to the client (no password hash). */
-export interface PublicUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
+// PublicUser and AuthResponse (the API contract) live in @flower-shop/shared.
 
 /** A user row including the password hash — for credential checks only, never returned. */
 export interface UserWithPasswordHash extends PublicUser {
@@ -26,12 +21,6 @@ export interface IssuedSession {
   user: PublicUser;
   /** Raw refresh token, for the cookie only. */
   refreshToken: string;
-}
-
-/** Body of a successful register / login / refresh response. */
-export interface AuthResponse {
-  accessToken: string;
-  user: PublicUser;
 }
 
 /** A request that passed JwtAuthGuard. */

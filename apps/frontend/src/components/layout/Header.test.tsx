@@ -1,14 +1,13 @@
+import type { PublicUser } from '@flower-shop/shared';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../../features/auth/shared/AuthProvider';
-import type { User } from '../../features/auth/shared/auth.types';
+import { jsonResponse, TEST_USER as dana } from '../../test/helpers';
 import { Header } from './Header';
 
-const dana: User = { id: 'u1', name: 'Dana Levi', email: 'dana@example.com', phone: '0501234567' };
-
-function renderHeader(initialUser: User | null) {
+function renderHeader(initialUser: PublicUser | null) {
   return render(
     <AuthProvider initialUser={initialUser}>
       <MemoryRouter>
@@ -63,10 +62,8 @@ describe('Header', () => {
   it('logs in from the panel and switches to the logged-in view', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: { code: 'INVALID_CREDENTIALS', message: 'x' } }), { status: 401 }),
-      )
-      .mockResolvedValueOnce(new Response(JSON.stringify({ accessToken: 'at-1', user: dana }), { status: 200 }));
+      .mockResolvedValueOnce(jsonResponse(401, { error: { code: 'INVALID_CREDENTIALS', message: 'x' } }))
+      .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'at-1', user: dana }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderHeader(null);

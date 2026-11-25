@@ -7,7 +7,7 @@ import { useLoginForm } from './useLoginForm';
 
 /** Email + password login form, shared by the header account panel and the /login page. */
 export function LoginForm({ idPrefix, onSuccess }: LoginFormProps) {
-  const { values, errors, formError, submitting, update, onSubmit } = useLoginForm({ onSuccess });
+  const { values, errors, formError, submitting, update, onSubmit } = useLoginForm(onSuccess);
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-3">

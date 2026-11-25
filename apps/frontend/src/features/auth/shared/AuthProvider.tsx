@@ -1,8 +1,9 @@
+import type { PublicUser } from '@flower-shop/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setSessionExpiredHandler } from '../../../lib/apiClient';
 import { logoutUser, refreshSession } from './auth.api';
 import { AuthContext } from './authContext';
-import type { AuthProviderProps, AuthStatus, User } from './auth.types';
+import type { AuthProviderProps, AuthStatus } from './auth.types';
 
 /**
  * Auth state for the app. The access token lives only in memory (inside apiClient); on mount the
@@ -11,7 +12,7 @@ import type { AuthProviderProps, AuthStatus, User } from './auth.types';
  */
 export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const seeded = initialUser !== undefined;
-  const [user, setUser] = useState<User | null>(initialUser ?? null);
+  const [user, setUser] = useState<PublicUser | null>(initialUser ?? null);
   const [status, setStatus] = useState<AuthStatus>(seeded ? 'ready' : 'loading');
 
   useEffect(() => {

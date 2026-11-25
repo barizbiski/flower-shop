@@ -1,8 +1,8 @@
 import { Inject, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-import { APP_CONFIG, type AppConfig } from '../app.config.js';
-import { ERROR_CODES } from '../common/constants/error-codes.js';
-import { SAFE_METHODS } from '../common/constants/http.js';
+import { ERROR_CODES } from '@flower-shop/shared';
+import { APP_CONFIG, type AppConfig } from '../../app.config.js';
+import { SAFE_METHODS } from '../constants/http.js';
 import { HttpError } from './errors.js';
 
 /**

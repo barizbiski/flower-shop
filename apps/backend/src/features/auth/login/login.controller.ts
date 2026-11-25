@@ -1,19 +1,18 @@
+import { AUTH_ENDPOINTS, AUTH_ROUTE, type AuthResponse, type PublicUser } from '@flower-shop/shared';
 import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { APP_CONFIG, type AppConfig } from '../../../app.config.js';
-import { ERROR_CODES } from '../../../common/constants/error-codes.js';
-import { HttpError } from '../../../http/errors.js';
-import type { AuthResponse, PublicUser } from '../shared/auth.types.js';
+import { HttpError } from '../../../common/http/errors.js';
+import { parseBodyOrThrow } from '../../../common/validation/parse-body-or-throw.js';
 import { CurrentUserId } from '../shared/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../shared/jwt-auth.guard.js';
 import { clearRefreshCookie, readRefreshToken } from '../shared/refresh-cookie.js';
 import { TokenIssuer } from '../shared/token-issuer.service.js';
-import { LOGIN_MESSAGES } from './login.constants.js';
-import { parseLogin } from './login.schema.js';
+import { loginSchema } from './login.schema.js';
 import { LoginService } from './login.service.js';
 
 /** Login, token refresh, logout and the current user. Origin (CSRF) is checked globally by OriginGuard. */
-@Controller('auth')
+@Controller(AUTH_ROUTE)
 export class LoginController {
   constructor(
     @Inject(LoginService) private readonly loginService: LoginService,
@@ -21,25 +20,22 @@ export class LoginController {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
-  @Post('login')
+  @Post(AUTH_ENDPOINTS.login)
   @HttpCode(200)
   async login(
     @Body() body: unknown,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    const parsed = parseLogin(body);
-    if (!parsed.ok) {
-      throw new HttpError(400, ERROR_CODES.VALIDATION_ERROR, LOGIN_MESSAGES.formInvalid, parsed.fields);
-    }
-    const session = await this.loginService.login(parsed.data, {
+    const input = parseBodyOrThrow(loginSchema, body);
+    const session = await this.loginService.login(input, {
       ip: req.ip ?? '',
       currentRefreshToken: readRefreshToken(req),
     });
     return this.tokens.respond(res, session);
   }
 
-  @Post('refresh')
+  @Post(AUTH_ENDPOINTS.refresh)
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
     try {
@@ -51,14 +47,14 @@ export class LoginController {
     }
   }
 
-  @Post('logout')
+  @Post(AUTH_ENDPOINTS.logout)
   @HttpCode(204)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.loginService.logout(readRefreshToken(req));
     clearRefreshCookie(res, this.config.secureCookies);
   }
 
-  @Get('me')
+  @Get(AUTH_ENDPOINTS.me)
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUserId() userId: string): Promise<{ user: PublicUser }> {
     return { user: await this.loginService.me(userId) };

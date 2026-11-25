@@ -1,8 +1,9 @@
+import type { PublicUser } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../../db/database.service.js';
 import type { Queryable } from '../../../db/pool.js';
 import { PG_UNIQUE_VIOLATION } from './auth.constants.js';
-import type { NewUser, PublicUser, UserWithPasswordHash } from './auth.types.js';
+import type { NewUser, UserWithPasswordHash } from './auth.types.js';
 
 export class EmailTakenError extends Error {}
 

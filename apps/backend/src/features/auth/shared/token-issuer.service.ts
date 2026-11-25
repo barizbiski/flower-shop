@@ -1,8 +1,9 @@
+import type { AuthResponse, PublicUser } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Response } from 'express';
 import { APP_CONFIG, type AppConfig } from '../../../app.config.js';
 import { AccessTokenService } from './access-token.service.js';
-import type { AuthResponse, IssuedSession, PublicUser } from './auth.types.js';
+import type { IssuedSession } from './auth.types.js';
 import { setRefreshCookie } from './refresh-cookie.js';
 
 /**

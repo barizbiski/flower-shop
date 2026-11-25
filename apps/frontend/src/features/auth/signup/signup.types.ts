@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import type { User } from '../shared/auth.types';
+import type { AuthFormResult, FormErrors } from '../shared/auth.types';
 
 export interface SignupValues {
   name: string;
@@ -9,16 +9,12 @@ export interface SignupValues {
 }
 
 export type SignupField = keyof SignupValues;
-export type SignupErrors = Partial<Record<SignupField, string>>;
+export type SignupErrors = FormErrors<SignupValues>;
 
-/** Form-level failure shown above the fields (field errors are shown inline). */
-export type SignupFormError = 'email_taken' | 'error' | null;
+/** Form-level sign-up failures, shown above the fields (field errors are shown inline). */
+export type SignupFailure = 'email_taken' | 'error';
 
-export type RegisterResult =
-  | { ok: true; user: User }
-  | { ok: false; kind: 'email_taken' }
-  | { ok: false; kind: 'invalid'; fields: SignupErrors }
-  | { ok: false; kind: 'error' };
+export type RegisterResult = AuthFormResult<SignupValues, SignupFailure>;
 
 export interface SignupFormProps {
   values: SignupValues;
@@ -29,5 +25,5 @@ export interface SignupFormProps {
 }
 
 export interface SignupFormAlertProps {
-  error: SignupFormError;
+  error: SignupFailure | null;
 }

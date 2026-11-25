@@ -1,40 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from '../shared/AuthProvider';
-import { useAuth } from '../shared/useAuth';
+import { describe, expect, it } from 'vitest';
+import { mockFetch, renderAuthPage, TEST_USER as dana } from '../../../test/helpers';
 import { LoginPage } from './LoginPage';
 
-const dana = { id: 'u1', name: 'Dana Levi', email: 'dana@example.com', phone: '0501234567' };
-
-function Landing() {
-  const { user } = useAuth();
-  const location = useLocation();
-  return (
-    <p>
-      landed at {location.pathname} as {user?.name ?? 'nobody'}
-    </p>
-  );
-}
-
 function renderLogin(url = '/login') {
-  return render(
-    <AuthProvider initialUser={null}>
-      <MemoryRouter initialEntries={[url]}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={<Landing />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>,
-  );
-}
-
-function mockFetch(status: number, body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
+  return renderAuthPage('/login', <LoginPage />, url);
 }
 
 async function submit(email = 'dana@example.com', password = 'correct horse') {

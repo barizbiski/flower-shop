@@ -1,16 +1,11 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { App } from './App';
-
-function mockRefresh(status: number, body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
-}
+import { mockFetch, TEST_USER } from './test/helpers';
 
 describe('App', () => {
   it('renders the home page', async () => {
-    mockRefresh(401, { error: { code: 'UNAUTHENTICATED', message: 'Not logged in' } });
+    mockFetch(401, { error: { code: 'UNAUTHENTICATED', message: 'Not logged in' } });
     render(<App />);
     expect(screen.getByRole('heading', { name: /choose the occasion/i })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Log in or open account menu' })).toBeInTheDocument();
@@ -18,9 +13,9 @@ describe('App', () => {
 
   // AC6: the session is restored from the refresh cookie on load, with no logged-out flash
   it('restores the session on load and shows the initials', async () => {
-    const fetchMock = mockRefresh(200, {
+    const fetchMock = mockFetch(200, {
       accessToken: 'at-1',
-      user: { id: 'u1', name: 'Dana Levi', email: 'dana@example.com', phone: '0501234567' },
+      user: TEST_USER,
     });
     render(<App />);
     expect(screen.queryByRole('button', { name: 'Log in or open account menu' })).not.toBeInTheDocument();

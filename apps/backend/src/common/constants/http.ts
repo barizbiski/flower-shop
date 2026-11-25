@@ -1,6 +1,3 @@
-/** Every route is served under /api. */
-export const API_PREFIX = 'api';
-
 /** Max JSON request body size. */
 export const JSON_BODY_LIMIT = '10kb';
 

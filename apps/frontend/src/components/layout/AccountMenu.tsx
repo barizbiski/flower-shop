@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { LoginForm } from '../../features/auth/login/LoginForm';
+import { AuthSwitchPrompt } from '../../features/auth/shared/AuthSwitchPrompt';
 import { useAuth } from '../../features/auth/shared/useAuth';
 import { getInitials } from '../../utils/string';
 import { Button } from '../ui/Button/Button';
-import { TextLink } from '../ui/TextLink/TextLink';
 
 function PersonIcon() {
   return (
@@ -129,12 +129,7 @@ export function AccountMenu() {
             <>
               <h2 className="mt-0 mb-4 font-display text-[26px] font-normal">Welcome back</h2>
               <LoginForm idPrefix="account" />
-              <p className="mt-4 mb-0 flex justify-center gap-1.5 text-sm text-muted">
-                New here?
-                <TextLink to="/signup" emphasis>
-                  Create an account
-                </TextLink>
-              </p>
+              <AuthSwitchPrompt target="signup" />
             </>
           )}
         </div>

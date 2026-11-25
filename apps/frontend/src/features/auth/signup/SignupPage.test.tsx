@@ -1,38 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from '../shared/AuthProvider';
-import { useAuth } from '../shared/useAuth';
+import { mockFetch, renderAuthPage, TEST_USER as createdUser } from '../../../test/helpers';
 import { SignupPage } from './SignupPage';
 
-function Landing() {
-  const { user } = useAuth();
-  const location = useLocation();
-  return (
-    <p>
-      landed at {location.pathname} as {user?.name ?? 'nobody'}
-    </p>
-  );
-}
-
 function renderSignup(url = '/signup') {
-  return render(
-    <AuthProvider initialUser={null}>
-      <MemoryRouter initialEntries={[url]}>
-        <Routes>
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="*" element={<Landing />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>,
-  );
-}
-
-function mockFetch(status: number, body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
+  return renderAuthPage('/signup', <SignupPage />, url);
 }
 
 async function fillValid(user = userEvent.setup()) {
@@ -42,8 +15,6 @@ async function fillValid(user = userEvent.setup()) {
   await user.type(screen.getByLabelText('Password'), 'correct horse');
   return user;
 }
-
-const createdUser = { id: 'u1', name: 'Dana Levi', email: 'dana@example.com', phone: '0501234567' };
 
 describe('SignupPage', () => {
   // AC1

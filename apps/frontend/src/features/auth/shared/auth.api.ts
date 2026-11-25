@@ -1,17 +1,39 @@
-import { API_ROUTES } from '../../../constants/api';
-import { getJson, postJson, refreshAccessToken, setAccessToken } from '../../../lib/apiClient';
-import type { AuthTokenResponse, User } from './auth.types';
+import { AUTH_PATHS, type AuthResponse, type PublicUser } from '@flower-shop/shared';
+import {
+  getJson,
+  isApiError,
+  isAuthResponse,
+  postJson,
+  refreshAccessToken,
+  setAccessToken,
+} from '../../../lib/apiClient';
+import type { CredentialsResponse } from './auth.types';
 
-/** True for the `{ accessToken, user }` body that register, login and refresh return. */
-export function isTokenResponse(body: unknown): body is AuthTokenResponse {
-  return typeof body === 'object' && body !== null && 'user' in body && 'accessToken' in body;
+/**
+ * POSTs register or login credentials. On `successStatus` with `{ accessToken, user }` stores the
+ * access token; a 400 with field errors is returned as `invalid`; anything else as its status.
+ */
+export async function postCredentials(path: string, values: unknown, successStatus: number): Promise<CredentialsResponse> {
+  try {
+    const { status, body } = await postJson<AuthResponse>(path, values);
+    if (status === successStatus && isAuthResponse(body)) {
+      setAccessToken(body.accessToken);
+      return { ok: true, user: body.user };
+    }
+    if (status === 400 && isApiError(body) && body.error.fields) {
+      return { ok: false, kind: 'invalid', fields: body.error.fields };
+    }
+    return { ok: false, kind: 'status', status };
+  } catch {
+    return { ok: false, kind: 'status', status: 0 };
+  }
 }
 
 /** Restores the session from the refresh cookie; resolves to the user, or null when logged out. */
-export async function refreshSession(): Promise<User | null> {
+export async function refreshSession(): Promise<PublicUser | null> {
   try {
-    const { status, body } = await refreshAccessToken<AuthTokenResponse>();
-    return status === 200 && isTokenResponse(body) ? body.user : null;
+    const { status, body } = await refreshAccessToken<AuthResponse>();
+    return status === 200 && isAuthResponse(body) ? body.user : null;
   } catch {
     return null;
   }
@@ -20,7 +42,7 @@ export async function refreshSession(): Promise<User | null> {
 /** Ends the session on the server (best effort) and always drops the access token. */
 export async function logoutUser(): Promise<void> {
   try {
-    await postJson<null>(API_ROUTES.logout, {});
+    await postJson<null>(AUTH_PATHS.logout, {});
   } catch {
     // Network failure: still log out locally.
   } finally {
@@ -28,9 +50,9 @@ export async function logoutUser(): Promise<void> {
   }
 }
 
-export async function fetchMe(): Promise<User | null> {
+export async function fetchMe(): Promise<PublicUser | null> {
   try {
-    const { status, body } = await getJson<{ user: User }>(API_ROUTES.me);
+    const { status, body } = await getJson<{ user: PublicUser }>(AUTH_PATHS.me);
     return status === 200 && body && 'user' in body ? body.user : null;
   } catch {
     return null;

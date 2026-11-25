@@ -1,12 +1,7 @@
-import {
-  EMAIL_MAX_LENGTH,
-  EMAIL_RE,
-  PASSWORD_MAX_LENGTH,
-  VALIDATION_MESSAGES as MSG,
-} from '../../../constants/validation';
+import { EMAIL_MAX_LENGTH, EMAIL_RE, LOGIN_MESSAGES as MSG, PASSWORD_MAX_LENGTH } from '@flower-shop/shared';
 import type { LoginErrors, LoginValues } from './login.types';
 
-// Mirrors apps/backend/src/features/auth/login/login.schema.ts — keep rules in sync.
+// Same rules as apps/backend/src/features/auth/login/login.schema.ts; limits and messages come from @flower-shop/shared.
 // No minimum password length: any wrong password gets the same "Incorrect email or password".
 export function validateLogin(v: LoginValues): LoginErrors {
   const errors: LoginErrors = {};

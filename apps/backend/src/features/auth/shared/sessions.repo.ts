@@ -1,8 +1,8 @@
+import type { PublicUser } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../../db/database.service.js';
 import type { Queryable } from '../../../db/pool.js';
 import { REFRESH_TTL_MS } from './auth.constants.js';
-import type { PublicUser } from './auth.types.js';
 import { generateToken, hashToken } from './helpers/token.js';
 
 /**

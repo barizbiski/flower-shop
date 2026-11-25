@@ -6,11 +6,11 @@ import {
   PASSWORD_MIN_LENGTH,
   PHONE_RE,
   PHONE_SEPARATORS_RE,
-  VALIDATION_MESSAGES as MSG,
-} from '../../../constants/validation';
+  REGISTER_MESSAGES as MSG,
+} from '@flower-shop/shared';
 import type { SignupErrors, SignupValues } from './signup.types';
 
-// Mirrors apps/backend/src/features/auth/register/register.schema.ts — keep rules in sync.
+// Same rules as apps/backend/src/features/auth/register/register.schema.ts; limits and messages come from @flower-shop/shared.
 export function validateSignup(v: SignupValues): SignupErrors {
   const errors: SignupErrors = {};
   const name = v.name.trim();

@@ -1,4 +1,5 @@
-import type { ApiErrorBody, ApiResponse } from '../../types/api';
+import type { ApiErrorBody } from '@flower-shop/shared';
+import type { ApiResponse } from './apiClient.types';
 import { getAccessToken } from './session';
 
 export type HttpMethod = 'GET' | 'POST';

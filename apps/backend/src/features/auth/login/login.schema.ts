@@ -1,8 +1,5 @@
+import { EMAIL_MAX_LENGTH, LOGIN_MESSAGES as MSG, PASSWORD_MAX_LENGTH } from '@flower-shop/shared';
 import { z } from 'zod';
-import { parseBody } from '../../../common/validation/parse-body.js';
-import { EMAIL_MAX_LENGTH, PASSWORD_MAX_LENGTH } from '../shared/auth.constants.js';
-import { LOGIN_MESSAGES as MSG } from './login.constants.js';
-import type { ParseLoginResult } from './login.types.js';
 
 /**
  * Only checks shape: the password's minimum length is a sign-up rule, not a login one — any
@@ -20,7 +17,3 @@ export const loginSchema = z.object({
     .min(1, MSG.passwordRequired)
     .max(PASSWORD_MAX_LENGTH, MSG.passwordTooLong),
 });
-
-export function parseLogin(body: unknown): ParseLoginResult {
-  return parseBody(loginSchema, body);
-}

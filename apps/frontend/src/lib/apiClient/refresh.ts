@@ -1,6 +1,6 @@
-import { API_ROUTES } from '../../constants/api';
-import type { ApiResponse } from '../../types/api';
-import { hasAccessToken } from './guards';
+import { AUTH_PATHS } from '@flower-shop/shared';
+import type { ApiResponse } from './apiClient.types';
+import { isAuthResponse } from './guards';
 import { send } from './send';
 import { notifySessionExpired, setAccessToken } from './session';
 
@@ -15,8 +15,8 @@ let refreshInFlight: Promise<ApiResponse<unknown>> | null = null;
 export function refreshAccessToken<T>(): Promise<ApiResponse<T>> {
   refreshInFlight ??= (async () => {
     try {
-      const result = await send('POST', API_ROUTES.refresh, {});
-      if (result.status === 200 && hasAccessToken(result.body)) {
+      const result = await send('POST', AUTH_PATHS.refresh, {});
+      if (result.status === 200 && isAuthResponse(result.body)) {
         setAccessToken(result.body.accessToken);
       } else {
         setAccessToken(null);
