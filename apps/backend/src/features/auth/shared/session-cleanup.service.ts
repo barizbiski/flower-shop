@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { SessionsRepository } from './sessions.repo.js';
 
 /**
- * Background housekeeping: physically deletes expired refresh-token rows every hour. Validity never
+ * Background housekeeping: physically deletes expired refresh-token rows once a week. Validity never
  * depends on this job — refresh checks `expires_at` itself, so an expired row that hasn't been
  * swept yet is already rejected.
  */
@@ -13,7 +13,7 @@ export class SessionCleanupService {
 
   constructor(@Inject(SessionsRepository) private readonly sessions: SessionsRepository) {}
 
-  @Cron(CronExpression.EVERY_HOUR, { name: 'session-cleanup' })
+  @Cron(CronExpression.EVERY_WEEK, { name: 'session-cleanup' })
   async deleteExpiredSessions(): Promise<number> {
     try {
       const deleted = await this.sessions.deleteExpired();
