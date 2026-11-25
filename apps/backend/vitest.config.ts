@@ -1,5 +1,5 @@
 import swc from 'unplugin-swc';
-import { loadEnv } from 'vite';
+import { defaultServerConditions, loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig(({ mode }) => ({
@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
+  // Resolve @flower-shop/shared to its TypeScript source, so it needs no build step.
+  resolve: { conditions: ['@flower-shop/source', ...defaultServerConditions] },
+  ssr: { resolve: { conditions: ['@flower-shop/source', ...defaultServerConditions] } },
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],

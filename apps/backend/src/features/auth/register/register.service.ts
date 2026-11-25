@@ -1,12 +1,12 @@
+import { ERROR_CODES, REGISTER_MESSAGES } from '@flower-shop/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { ERROR_CODES } from '../../../common/constants/error-codes.js';
 import { DatabaseService } from '../../../db/database.service.js';
-import { HttpError } from '../../../http/errors.js';
+import { HttpError } from '../../../common/http/errors.js';
+import type { IssuedSession } from '../shared/auth.types.js';
 import { hashPassword } from '../shared/helpers/password.js';
 import { SessionsRepository } from '../shared/sessions.repo.js';
 import { EmailTakenError, UsersRepository } from '../shared/users.repo.js';
-import { REGISTER_MESSAGES } from './register.constants.js';
-import type { RegisterInput, RegisterResult } from './register.types.js';
+import type { RegisterInput } from './register.types.js';
 
 @Injectable()
 export class RegisterService {
@@ -16,14 +16,14 @@ export class RegisterService {
     @Inject(SessionsRepository) private readonly sessions: SessionsRepository,
   ) {}
 
-  /** Creates the user and their first session in one transaction; returns the raw session token. */
-  async register({ name, email, phone, password }: RegisterInput): Promise<RegisterResult> {
+  /** Creates the user and their first refresh session in one transaction. */
+  async register({ name, email, phone, password }: RegisterInput): Promise<IssuedSession> {
     const passwordHash = await hashPassword(password);
     try {
       return await this.db.transaction(async (client) => {
         const user = await this.users.insert({ name, email, phone, passwordHash }, client);
-        const token = await this.sessions.create(user.id, client);
-        return { user, token };
+        const sessionToken = await this.sessions.create(user.id, client);
+        return { user, sessionToken };
       });
     } catch (err) {
       if (err instanceof EmailTakenError) {

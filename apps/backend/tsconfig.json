@@ -11,7 +11,8 @@
     "emitDecoratorMetadata": true,
     "sourceMap": true,
     "outDir": "dist",
-    "types": ["node"]
+    "types": ["node"],
+    "customConditions": ["@flower-shop/source"]
   },
   "include": ["src", "test", "vitest.config.ts"]
 }

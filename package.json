@@ -2,6 +2,7 @@
   "name": "flower-shop",
   "private": true,
   "workspaces": [
+    "packages/shared",
     "apps/backend",
     "apps/frontend"
   ],

@@ -1,11 +1,20 @@
+import { BUTTON_VARIANTS } from './Button.constants';
 import type { ButtonProps } from './Button.types';
 
-/** Primary pill button in the brand wine colour. */
-export function Button({ loading = false, loadingText, disabled, className = '', children, ...rest }: ButtonProps) {
+/** Pill button: wine primary, or outlined secondary. */
+export function Button({
+  loading = false,
+  loadingText,
+  variant = 'primary',
+  disabled,
+  className = '',
+  children,
+  ...rest
+}: ButtonProps) {
   return (
     <button
       disabled={disabled || loading}
-      className={`h-12 cursor-pointer rounded-full border-0 bg-wine font-sans text-[15px] font-semibold text-white hover:bg-wine-dark disabled:cursor-wait disabled:opacity-70 ${className}`}
+      className={`cursor-pointer rounded-full font-sans text-[15px] font-semibold disabled:cursor-wait disabled:opacity-70 ${BUTTON_VARIANTS[variant]} ${className}`}
       {...rest}
     >
       {loading && loadingText ? loadingText : children}

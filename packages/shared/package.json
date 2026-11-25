@@ -1,0 +1,17 @@
+{
+  "name": "@flower-shop/shared",
+  "private": true,
+  "type": "module",
+  "description": "Code shared by apps/backend and apps/frontend: API contract types, error codes, validation limits and messages.",
+  "exports": {
+    ".": {
+      "@flower-shop/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc --noEmit -p ."
+  }
+}
