@@ -1,6 +1,6 @@
 import { Button } from '../../../components/ui/Button/Button';
 import { TextField } from '../../../components/ui/TextField/TextField';
-import type { SignupFormProps } from '../types';
+import type { SignupFormProps } from './signup.types';
 
 /** The sign-up fields and submit button. Presentation only; state lives in useSignupForm. */
 export function SignupForm({ values, errors, submitting, onFieldChange, onSubmit }: SignupFormProps) {

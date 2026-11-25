@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeNext } from '../../../utils/safeNext';
-import { registerUser } from '../api';
-import { EMPTY_SIGNUP_VALUES } from '../constants';
-import type { SignupErrors, SignupField, SignupFormError, SignupValues } from '../types';
-import { useAuth } from '../useAuth';
-import { validateSignup } from './validation';
+import { registerUser } from './signup.api';
+import { EMPTY_SIGNUP_VALUES } from './signup.constants';
+import type { SignupErrors, SignupField, SignupFormError, SignupValues } from './signup.types';
+import { useAuth } from '../shared/useAuth';
+import { validateSignup } from './signup.validation';
 
 /**
  * Sign-up form state and submit flow: validates on the client, registers, stores the

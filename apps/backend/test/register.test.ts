@@ -1,26 +1,10 @@
 import { createHash } from 'node:crypto';
-import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startTestApp, WEB_ORIGIN } from './helpers/testApp.js';
+import { getMe, postAuth, refreshCookie, refreshTokenFrom, validUser as valid, type TestApp } from './helpers/auth.js';
+import { startTestApp } from './helpers/testApp.js';
 
-type TestApp = Awaited<ReturnType<typeof startTestApp>>;
-
-const valid = {
-  name: 'Dana Levi',
-  email: '  Dana.Levi@Example.COM ',
-  phone: '+972 50-123-4567',
-  password: 'correct horse',
-};
-
-function register(t: TestApp, body: unknown, origin: string | null = WEB_ORIGIN) {
-  const req = request(t.app).post('/api/auth/register');
-  if (origin) req.set('Origin', origin);
-  return req.send(body as object);
-}
-
-function sessionCookie(res: request.Response): string | undefined {
-  const raw = res.headers['set-cookie'] as unknown as string[] | undefined;
-  return raw?.find((c) => c.startsWith('sid='));
+function register(t: TestApp, body: unknown, origin?: string | null) {
+  return postAuth(t, 'register', body, { origin });
 }
 
 describe('POST /api/auth/register', () => {
@@ -37,14 +21,20 @@ describe('POST /api/auth/register', () => {
   });
 
   // AC2
-  it('creates the user, returns 201 with the public user, and sets a session cookie', async () => {
+  it('creates the user, returns 201 with an access token and the public user, and sets a refresh cookie', async () => {
     const res = await register(t, valid);
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
+      accessToken: expect.any(String),
       user: { id: expect.any(String), name: 'Dana Levi', email: 'dana.levi@example.com', phone: '+972501234567' },
     });
-    expect(sessionCookie(res)).toBeDefined();
+    expect(refreshCookie(res)).toBeDefined();
+    expect(JSON.stringify(res.body)).not.toContain(refreshTokenFrom(res)!);
+
+    const me = await getMe(t, res.body.accessToken);
+    expect(me.status).toBe(200);
+    expect(me.body.user).toEqual(res.body.user);
 
     const { rows } = await t.db.query('SELECT count(*)::int AS n FROM users');
     expect(rows[0].n).toBe(1);
@@ -64,7 +54,7 @@ describe('POST /api/auth/register', () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('EMAIL_TAKEN');
-    expect(sessionCookie(res)).toBeUndefined();
+    expect(refreshCookie(res)).toBeUndefined();
     const { rows } = await t.db.query('SELECT count(*)::int AS n FROM users');
     expect(rows[0].n).toBe(1);
   });
@@ -85,7 +75,7 @@ describe('POST /api/auth/register', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(Object.keys(res.body.error.fields)).toEqual([field]);
-    expect(sessionCookie(res)).toBeUndefined();
+    expect(refreshCookie(res)).toBeUndefined();
   });
 
   // AC4
@@ -117,17 +107,17 @@ describe('POST /api/auth/register', () => {
   });
 
   // AC6
-  it('sets an HttpOnly, SameSite=Lax, 30-day cookie and stores only the token hash', async () => {
+  it('sets an HttpOnly, SameSite=Lax, 30-day refresh cookie on /api/auth and stores only the token hash', async () => {
     const res = await register(t, valid);
-    const cookie = sessionCookie(res)!;
+    const cookie = refreshCookie(res)!;
 
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
-    expect(cookie).toMatch(/Path=\//i);
+    expect(cookie).toMatch(/Path=\/api\/auth(;|$)/i);
     expect(cookie).not.toMatch(/Secure/i);
     expect(cookie).toMatch(/Max-Age=2592000/i);
 
-    const token = decodeURIComponent(cookie.split(';')[0]!.slice('sid='.length));
+    const token = refreshTokenFrom(res)!;
     expect(token.length).toBeGreaterThanOrEqual(43);
 
     const { rows } = await t.db.query('SELECT id, user_id, expires_at FROM sessions');
@@ -167,8 +157,8 @@ describe('POST /api/auth/register in production', () => {
   });
 
   // AC6
-  it('marks the session cookie Secure', async () => {
+  it('marks the refresh cookie Secure', async () => {
     const res = await register(t, valid);
-    expect(sessionCookie(res)).toMatch(/Secure/i);
+    expect(refreshCookie(res)).toMatch(/Secure/i);
   });
 });

@@ -1,14 +1,16 @@
 import { createApp } from './app.js';
-import { loadConfig } from './config.js';
+import { loadConfig, requireConfig } from './config.js';
 import { createPool } from './db/pool.js';
 
 const config = loadConfig();
-if (!config.databaseUrl) {
-  console.error('DATABASE_URL is required.');
-  process.exit(1);
-}
+requireConfig(config);
 
 const db = createPool(config.databaseUrl);
-const app = await createApp({ db, webOrigin: config.webOrigin, secureCookies: config.production });
+const app = await createApp({
+  db,
+  webOrigin: config.webOrigin,
+  secureCookies: config.production,
+  jwtAccessSecret: config.jwtAccessSecret,
+});
 await app.listen(config.port);
 console.log(`API listening on http://localhost:${config.port}`);
