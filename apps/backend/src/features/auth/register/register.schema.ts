@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { FieldErrors } from '../../../common/types/field-errors.js';
+import { parseBody } from '../../../common/validation/parse-body.js';
 import { EMAIL_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '../shared/auth.constants.js';
 import { NAME_MAX_LENGTH, PHONE_RE, PHONE_SEPARATORS_RE, REGISTER_MESSAGES as MSG } from './register.constants.js';
 import type { ParseRegisterResult } from './register.types.js';
@@ -23,13 +23,5 @@ export const registerSchema = z.object({
 });
 
 export function parseRegister(body: unknown): ParseRegisterResult {
-  const result = registerSchema.safeParse(body ?? {});
-  if (result.success) return { ok: true, data: result.data };
-
-  const fields: FieldErrors = {};
-  for (const issue of result.error.issues) {
-    const key = String(issue.path[0] ?? 'body');
-    fields[key] ??= issue.message;
-  }
-  return { ok: false, fields };
+  return parseBody(registerSchema, body);
 }
