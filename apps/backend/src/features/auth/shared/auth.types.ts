@@ -21,7 +21,7 @@ export interface NewUser {
   passwordHash: string;
 }
 
-/** What register, login and refresh produce before responding: the user and their new raw refresh token. */
+/** What register and login produce before responding: the user and their new raw refresh token. */
 export interface IssuedSession {
   user: PublicUser;
   /** Raw refresh token, for the cookie only. */

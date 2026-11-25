@@ -16,7 +16,8 @@ logged in. A `/login` page shows the same form, so `checkout-auth-gate` can late
 error that doesn't reveal whether the email exists; the session survives a page reload and a
 browser restart until logout. Builds on the `register` spec's users and sessions tables and origin
 check, and moves auth to access + refresh tokens: a 15-minute JWT access token sent as a Bearer
-header, and a 30-day rotating refresh token (hash stored in `sessions`, httpOnly cookie on the web).
+header, and a non-rotating refresh token with a fixed 30-day expiry from login (hash stored in
+`sessions`, httpOnly cookie on the web).
 This keeps the API usable by a future mobile app.
 
 ## Goals & User Stories
@@ -33,7 +34,7 @@ This keeps the API usable by a future mobile app.
 3. AC3: `POST /api/auth/login` with a correct email (any letter case, surrounding spaces ignored) and password returns `200` with `{ accessToken, user: { id, name, email, phone } }` and sets the refresh token in the same `refresh_token` cookie as register (HttpOnly, SameSite=Lax, Secure in production, `Path=/api/auth`, 30 days, only the token's SHA-256 stored). The access token is a JWT (HS256, `sub` = user id) that expires after 15 minutes. The panel switches to the logged-in view; on `/login` the browser goes to a safe same-site `?next=` path or home.
 4. AC4: A wrong password or an unknown email both return `401` (`INVALID_CREDENTIALS`) with the same message, "Incorrect email or password", which the form shows. Empty or malformed input returns `400` (`VALIDATION_ERROR`), and the client checks the same before submitting.
 5. AC5: After 5 failed logins for the same email from the same IP within 15 minutes, further attempts return `429` (`RATE_LIMITED`) until the window passes, and the form says "Too many attempts. Please try again later." A successful login resets the count.
-6. AC6: `GET /api/auth/me` returns `200 { user }` with a valid, unexpired `Authorization: Bearer` access token and `401` (`UNAUTHENTICATED`) when it's missing, malformed, badly signed or expired. `POST /api/auth/refresh` with a valid, unexpired refresh token (cookie, or `refreshToken` in the JSON body) returns `200 { accessToken, user }`, replaces the refresh token with a new one (old row deleted, new cookie set) and returns `401` (`UNAUTHENTICATED`) otherwise; a refresh token that was already rotated no longer works. On load the app calls `/refresh`, so a logged-in shopper still sees their initials after a reload or browser restart, with no logged-out flash while it loads. When an API call returns `401` the client refreshes once and retries.
+6. AC6: `GET /api/auth/me` returns `200 { user }` with a valid, unexpired `Authorization: Bearer` access token and `401` (`UNAUTHENTICATED`) when it's missing, malformed, badly signed or expired. `POST /api/auth/refresh` with a valid, unexpired refresh token (cookie, or `refreshToken` in the JSON body) returns `200 { accessToken, user }` and returns `401` (`UNAUTHENTICATED`) otherwise. Refresh does not rotate: no new refresh token, no `Set-Cookie`, and the session row (including `expires_at`, fixed at 30 days from login — no sliding expiry) is not updated, so the same refresh token keeps working, including concurrent refreshes from several tabs. An hourly background job deletes expired `sessions` rows; `/refresh` checks `expires_at` itself and never relies on the job. On load the app calls `/refresh`, so a logged-in shopper still sees their initials after a reload or browser restart, with no logged-out flash while it loads. When an API call returns `401` the client refreshes once and retries.
 7. AC7: `POST /api/auth/logout` deletes the refresh token's row, clears the cookie and returns `204`, even with no or an unknown refresh token. The client drops the access token from memory and the header shows the logged-out state. The old refresh token no longer works on `/refresh`; an access token issued before logout stays valid until it expires (at most 15 minutes).
 8. AC8: Login, refresh and logout requests whose `Origin` isn't the web app's origin are rejected with `403`. No log contains the password, its hash, the access token or the refresh token, and no response body contains the refresh token on the web flow (it's only in the httpOnly cookie).
 
@@ -41,12 +42,13 @@ This keeps the API usable by a future mobile app.
 
 - **API** (`apps/backend/src/features/auth/`, NestJS). A new `login/` folder mirrors `register/`; shared pieces get small additions in `shared/`:
   - `shared/users.repo.ts`: `UsersRepository.findByEmail(email)` returns the user with `password_hash`.
-  - `shared/sessions.repo.ts`: the `sessions` table now holds refresh-token hashes (no migration). Add `findUserByToken(token)` (join users, `expires_at > now()`), `deleteByToken(token)` and `rotate(token)` (delete the old row and create a new one in one transaction; returns the new raw token, or null if the old one is unknown or expired).
+  - `shared/sessions.repo.ts`: the `sessions` table now holds refresh-token hashes (no migration). Add `findUserByToken(token)` (read-only: join users, `expires_at > now()`), `deleteByToken(token)` and `deleteExpired()` (`DELETE ... WHERE expires_at <= now()`, returns the count). No `rotate`.
+  - `shared/session-cleanup.service.ts`: `SessionCleanupService` with an hourly `@Cron` (`@nestjs/schedule`, `ScheduleModule.forRoot()` in `AppModule`) calling `deleteExpired()`; failures are logged and retried on the next run. Migration adds an index on `sessions.expires_at`.
   - `shared/auth.constants.ts`: rename `SESSION_COOKIE = 'sid'` → `REFRESH_COOKIE = 'refresh_token'` and `SESSION_TTL_MS` → `REFRESH_TTL_MS` (30 days); add `ACCESS_TOKEN_TTL_S = 15 * 60` and `REFRESH_COOKIE_PATH = '/api/auth'`.
   - `shared/refresh-cookie.ts` (renamed from `session-cookie.ts`): `setRefreshCookie(res, token, secure)` and `clearRefreshCookie(res, secure)` with `Path=/api/auth`, and `readRefreshToken(req)` from the cookie or a `refreshToken` body field (cookie-parser).
   - `shared/access-token.service.ts`: `AccessTokenService` wrapping `@nestjs/jwt` — `sign(userId)` (HS256, `sub`, 15 min) and `verify(token)` (returns the user id or null). `AppConfig` gets `jwtAccessSecret`, read from the required env var `JWT_ACCESS_SECRET`; the server refuses to start without it. `.env.example` gets a placeholder only.
   - `shared/jwt-auth.guard.ts`: `JwtAuthGuard` reads `Authorization: Bearer`, verifies via `AccessTokenService`, puts the user id on the request, else `401 UNAUTHENTICATED`. Reused later by `checkout-auth-gate`.
-  - `shared/token-issuer.service.ts`: `TokenIssuer` used by register, login and refresh — creates or rotates the refresh token, sets the cookie and returns `{ accessToken }`, so all three respond the same way.
+  - `shared/token-issuer.service.ts`: `TokenIssuer` used by register, login and refresh so all three return `{ accessToken, user }` — `respond()` (register, login) also sets the new refresh-token cookie; `accessFor()` (refresh) signs an access token only and sets no cookie.
   - `register/register.controller.ts`: returns `201 { accessToken, user }` and sets the `refresh_token` cookie instead of `sid` (see the register spec's changelog).
   - `login/login.constants.ts`: `LOGIN_MESSAGES`, `LOGIN_MAX_FAILURES = 5`, `LOGIN_WINDOW_MS = 15 min`. Reuses `EMAIL_MAX_LENGTH` and `PASSWORD_MAX_LENGTH` from `shared/auth.constants.ts`.
   - `login/login.schema.ts` (zod) + `login/login.types.ts`: email trimmed and lowercased, password required (≤128 chars).
@@ -71,9 +73,10 @@ This keeps the API usable by a future mobile app.
 - The canvas's My account, My orders, Occasion reminders and admin Store dashboard links.
 - Checkout gate, redirect back to checkout, cart kept through login (spec `checkout-auth-gate`).
 - Distributed or persistent rate limiting (in-memory only for now); CAPTCHA; account lockout.
-- "Log out of all devices"; expired-session cleanup job.
+- "Log out of all devices".
+- Refresh-token rotation and sliding expiry (explicitly not wanted for now).
 - Mobile client delivery: returning the refresh token in the response body for a mobile client (the API already accepts it in the body on `/refresh` and `/logout`).
-- Refresh-token reuse detection (revoking the whole session when a rotated token is replayed); immediate access-token revocation (denylist or token version).
+- Refresh-token reuse detection; immediate access-token revocation (denylist or token version).
 - Asymmetric signing (RS256) and secret rotation tooling.
 - Hebrew/RTL.
 
@@ -89,3 +92,4 @@ This keeps the API usable by a future mobile app.
 | 2026-11-24 | barizbiski | created | Initial shaping | — |
 | 2026-11-24 | barizbiski | change | API approach updated to the features/auth layout from v2 (new login/ folder, additions in shared/); split into API and web PRs per "Keep PRs small" | T1–T7 |
 | 2026-11-24 | barizbiski | change | Auth moved from cookie-only server sessions to a 15-min JWT access token (Bearer) + 30-day rotating refresh token (hash in `sessions`, httpOnly cookie on web); new `POST /api/auth/refresh`, `JwtAuthGuard`; AC3, AC6, AC7, AC8 and Technical Approach updated; register now returns `accessToken` — to support a future mobile app and follow the common token pattern | T15–T19 |
+| 2026-11-25 | barizbiski | change | Refresh no longer rotates: `/refresh` only issues a new access token (no new refresh token, no cookie, session row and its fixed 30-day `expires_at` untouched); `rotate` replaced by read-only `findUserByToken`; hourly `SessionCleanupService` (`@nestjs/schedule`) deletes expired sessions, plus `sessions.expires_at` index; AC6, Overview, Technical Approach and Out of Scope updated — avoids rewriting the refresh token every 15 minutes and the multi-tab race where one tab's rotation logged out the other | T3, T17, T20 |

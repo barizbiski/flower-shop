@@ -43,7 +43,7 @@ export class LoginController {
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
     try {
-      return await this.tokens.respond(res, await this.loginService.refresh(readRefreshToken(req)));
+      return await this.tokens.accessFor(await this.loginService.refresh(readRefreshToken(req)));
     } catch (err) {
       // A dead refresh token is useless to the browser; drop it so it stops being sent.
       if (err instanceof HttpError && err.status === 401) clearRefreshCookie(res, this.config.secureCookies);

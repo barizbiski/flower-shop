@@ -9,6 +9,7 @@ import { RegisterService } from './register/register.service.js';
 import { AccessTokenService } from './shared/access-token.service.js';
 import { ACCESS_TOKEN_ALGORITHM, ACCESS_TOKEN_TTL_S } from './shared/auth.constants.js';
 import { JwtAuthGuard } from './shared/jwt-auth.guard.js';
+import { SessionCleanupService } from './shared/session-cleanup.service.js';
 import { SessionsRepository } from './shared/sessions.repo.js';
 import { TokenIssuer } from './shared/token-issuer.service.js';
 import { UsersRepository } from './shared/users.repo.js';
@@ -29,6 +30,7 @@ import { UsersRepository } from './shared/users.repo.js';
     // shared
     UsersRepository,
     SessionsRepository,
+    SessionCleanupService,
     AccessTokenService,
     TokenIssuer,
     JwtAuthGuard,

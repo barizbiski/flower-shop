@@ -44,6 +44,8 @@ export async function startTestApp(opts: { secureCookies?: boolean } = {}) {
   });
   return {
     app: nest.getHttpServer(),
+    /** The Nest app, for reaching providers directly (e.g. to run a scheduled job on demand). */
+    nest,
     db,
     async reset() {
       await db.query('TRUNCATE users CASCADE');

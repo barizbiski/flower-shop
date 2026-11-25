@@ -48,11 +48,14 @@ export class LoginService {
     return { user, refreshToken };
   }
 
-  /** Swaps a live refresh token for a new one; 401 if it's missing, unknown, expired or already used. */
-  async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
-    const rotated = refreshToken ? await this.sessions.rotate(refreshToken) : null;
-    if (!rotated) throw unauthenticated();
-    return rotated;
+  /**
+   * The user behind a live refresh token, for issuing a new access token; 401 if it's missing,
+   * unknown or expired. No rotation: the refresh token and its session row stay unchanged.
+   */
+  async refresh(refreshToken: string | undefined): Promise<PublicUser> {
+    const user = refreshToken ? await this.sessions.findUserByToken(refreshToken) : null;
+    if (!user) throw unauthenticated();
+    return user;
   }
 
   /** Ends the session behind a refresh token. Idempotent: no or an unknown token is fine. */

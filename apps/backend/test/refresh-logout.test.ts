@@ -7,6 +7,11 @@ async function sessionCount(t: TestApp): Promise<number> {
   return rows[0].n;
 }
 
+async function sessionRow(t: TestApp) {
+  const { rows } = await t.db.query('SELECT id, user_id, expires_at FROM sessions');
+  return rows[0];
+}
+
 describe('POST /api/auth/refresh', () => {
   let t: TestApp;
   let session: Awaited<ReturnType<typeof registerUser>>;
@@ -23,15 +28,14 @@ describe('POST /api/auth/refresh', () => {
   });
 
   // AC6
-  it('returns 200 { accessToken, user } and rotates the refresh token (cookie)', async () => {
+  it('returns 200 { accessToken, user } without rotating: no new cookie, session row unchanged', async () => {
+    const before = await sessionRow(t);
     const res = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ accessToken: expect.any(String), user: session.user });
-    const next = refreshTokenFrom(res)!;
-    expect(next).toBeTruthy();
-    expect(next).not.toBe(session.refreshToken);
-    expect(await sessionCount(t)).toBe(1);
+    expect(refreshCookie(res)).toBeUndefined();
+    expect(await sessionRow(t)).toEqual(before);
     expect((await getMe(t, res.body.accessToken)).status).toBe(200);
   });
 
@@ -42,21 +46,21 @@ describe('POST /api/auth/refresh', () => {
   });
 
   // AC6
-  it('rejects a refresh token that was already rotated', async () => {
-    await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
-    const replay = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
-
-    expect(replay.status).toBe(401);
-    expect(replay.body.error.code).toBe('UNAUTHENTICATED');
+  it('keeps the same refresh token usable for repeated refreshes', async () => {
+    for (let i = 0; i < 3; i++) {
+      const res = await postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken });
+      expect(res.status).toBe(200);
+    }
+    expect(await sessionCount(t)).toBe(1);
   });
 
   // AC6
-  it('lets only one of two concurrent refreshes with the same token win', async () => {
+  it('lets concurrent refreshes with the same token (several tabs) all succeed', async () => {
     const results = await Promise.all([
       postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken }),
       postAuth(t, 'refresh', undefined, { refreshToken: session.refreshToken }),
     ]);
-    expect(results.map((r) => r.status).sort()).toEqual([200, 401]);
+    expect(results.map((r) => r.status)).toEqual([200, 200]);
     expect(await sessionCount(t)).toBe(1);
   });
 

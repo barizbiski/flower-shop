@@ -2,12 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../../db/database.service.js';
 import type { Queryable } from '../../../db/pool.js';
 import { REFRESH_TTL_MS } from './auth.constants.js';
-import type { IssuedSession, PublicUser } from './auth.types.js';
+import type { PublicUser } from './auth.types.js';
 import { generateToken, hashToken } from './helpers/token.js';
 
 /**
  * Refresh tokens. Each row of `sessions` is one live refresh token: `id` is the token's SHA-256
- * hash (the raw token only ever lives on the client), `expires_at` its 30-day expiry.
+ * hash (the raw token only ever lives on the client), `expires_at` its fixed 30-day expiry (set at
+ * login/register, never extended — no rotation).
  */
 @Injectable()
 export class SessionsRepository {
@@ -31,23 +32,22 @@ export class SessionsRepository {
   }
 
   /**
-   * Swaps a live refresh token for a new one in one transaction: the old row is deleted and a new
-   * one created. Returns the user and the new raw token, or null if the old token is unknown,
-   * expired or already rotated. The DELETE row lock makes concurrent rotations of the same token
-   * safe — only the first one wins.
+   * The user behind a live refresh token, or null if the token is unknown or expired. Read-only:
+   * the token is not rotated and its fixed 30-day expiry is not extended.
    */
-  async rotate(token: string): Promise<IssuedSession | null> {
-    return this.db.transaction(async (client) => {
-      const { rows } = await client.query<PublicUser>(
-        `DELETE FROM sessions s USING users u
-          WHERE s.id = $1 AND s.user_id = u.id AND s.expires_at > now()
-          RETURNING u.id, u.name, u.email::text AS email, u.phone`,
-        [hashToken(token)],
-      );
-      const user = rows[0];
-      if (!user) return null;
-      const refreshToken = await this.create(user.id, client);
-      return { user, refreshToken };
-    });
+  async findUserByToken(token: string): Promise<PublicUser | null> {
+    const { rows } = await this.db.pool.query<PublicUser>(
+      `SELECT u.id, u.name, u.email::text AS email, u.phone
+         FROM sessions s JOIN users u ON u.id = s.user_id
+        WHERE s.id = $1 AND s.expires_at > now()`,
+      [hashToken(token)],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Physically removes expired rows (they are already rejected by findUserByToken); returns how many. */
+  async deleteExpired(): Promise<number> {
+    const { rowCount } = await this.db.pool.query('DELETE FROM sessions WHERE expires_at <= now()');
+    return rowCount ?? 0;
   }
 }
