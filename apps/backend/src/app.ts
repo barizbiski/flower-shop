@@ -1,10 +1,11 @@
 import 'reflect-metadata';
+import { API_PREFIX } from '@flower-shop/shared';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import type { AppConfig } from './app.config.js';
 import { AppModule } from './app.module.js';
-import { API_PREFIX, JSON_BODY_LIMIT } from './common/constants/http.js';
+import { JSON_BODY_LIMIT } from './common/constants/http.js';
 
 export type { AppConfig } from './app.config.js';
 

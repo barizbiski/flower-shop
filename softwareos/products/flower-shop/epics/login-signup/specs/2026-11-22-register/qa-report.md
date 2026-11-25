@@ -3,6 +3,7 @@
 > Spec: spec.md
 > Date: 2026-11-22 · QA by: barizbiski · Mode: setup
 > Verdict: PASS WITH NOTES
+> Stale: spec changed 2026-11-24 (Acceptance Criteria) — rerun the qa skill
 
 ## Acceptance Criteria
 

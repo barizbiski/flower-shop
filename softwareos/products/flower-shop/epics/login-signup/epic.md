@@ -20,3 +20,4 @@ user, supporting the product's success measure. Delivers the roadmap's MVP "Basi
 | Spec | Status | Branch |
 |---|---|---|
 | [2026-11-22-register](specs/2026-11-22-register/spec.md) | in-progress | feat/register |
+| [2026-11-24-login-logout](specs/2026-11-24-login-logout/spec.md) | shaped | feat/login |

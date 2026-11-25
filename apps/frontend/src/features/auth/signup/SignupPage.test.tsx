@@ -1,38 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from '../AuthProvider';
-import { useAuth } from '../useAuth';
+import { mockFetch, renderAuthPage, TEST_USER as createdUser } from '../../../test/helpers';
 import { SignupPage } from './SignupPage';
 
-function Landing() {
-  const { user } = useAuth();
-  const location = useLocation();
-  return (
-    <p>
-      landed at {location.pathname} as {user?.name ?? 'nobody'}
-    </p>
-  );
-}
-
 function renderSignup(url = '/signup') {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[url]}>
-        <Routes>
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="*" element={<Landing />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>,
-  );
-}
-
-function mockFetch(status: number, body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
+  return renderAuthPage('/signup', <SignupPage />, url);
 }
 
 async function fillValid(user = userEvent.setup()) {
@@ -42,8 +15,6 @@ async function fillValid(user = userEvent.setup()) {
   await user.type(screen.getByLabelText('Password'), 'correct horse');
   return user;
 }
-
-const createdUser = { id: 'u1', name: 'Dana Levi', email: 'dana@example.com', phone: '0501234567' };
 
 describe('SignupPage', () => {
   // AC1
@@ -60,7 +31,7 @@ describe('SignupPage', () => {
 
   // AC4 (client side)
   it('shows field errors and does not submit when the input is invalid', async () => {
-    const fetchMock = mockFetch(201, { user: createdUser });
+    const fetchMock = mockFetch(201, { accessToken: 'at-1', user: createdUser });
     const user = userEvent.setup();
     renderSignup();
 
@@ -80,7 +51,7 @@ describe('SignupPage', () => {
 
   // AC2
   it('posts the details, stores the user, and goes home logged in', async () => {
-    const fetchMock = mockFetch(201, { user: createdUser });
+    const fetchMock = mockFetch(201, { accessToken: 'at-1', user: createdUser });
     renderSignup();
     const user = await fillValid();
     await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -96,7 +67,7 @@ describe('SignupPage', () => {
 
   // AC2
   it('honours a safe same-site ?next= path', async () => {
-    mockFetch(201, { user: createdUser });
+    mockFetch(201, { accessToken: 'at-1', user: createdUser });
     renderSignup('/signup?next=%2Fcheckout');
     const user = await fillValid();
     await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -107,7 +78,7 @@ describe('SignupPage', () => {
   it.each(['https://evil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)'])(
     'ignores an unsafe ?next= (%s) and goes home',
     async (next) => {
-      mockFetch(201, { user: createdUser });
+      mockFetch(201, { accessToken: 'at-1', user: createdUser });
       renderSignup(`/signup?next=${encodeURIComponent(next)}`);
       const user = await fillValid();
       await user.click(screen.getByRole('button', { name: 'Create account' }));
